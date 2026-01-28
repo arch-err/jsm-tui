@@ -13,9 +13,10 @@ import (
 
 // Client handles communication with Jira API
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
-	auth       config.Auth
+	baseURL       string
+	httpClient    *http.Client
+	auth          config.Auth
+	serviceDeskID string // Cached service desk ID
 }
 
 // NewClient creates a new Jira API client
@@ -65,7 +66,7 @@ func (c *Client) doRequest(method, path string, body interface{}) (*http.Respons
 	if resp.StatusCode >= 400 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("HTTP %d for %s %s: %s", resp.StatusCode, method, url, string(bodyBytes))
 	}
 
 	return resp, nil

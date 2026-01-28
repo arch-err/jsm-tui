@@ -107,7 +107,12 @@ func (m *QueuesModel) View() string {
 	s := HeaderStyle.Render(fmt.Sprintf("Queues - %s", m.projectKey)) + "\n\n"
 
 	for i, queue := range m.queues {
-		line := fmt.Sprintf("  %s", queue.Name)
+		// Add star indicator for favorite queues
+		prefix := "  "
+		if queue.IsFavorite {
+			prefix = "★ "
+		}
+		line := fmt.Sprintf("%s%s", prefix, queue.Name)
 		if i == m.selectedIndex {
 			line = SelectedStyle.Render(line)
 		}

@@ -66,8 +66,19 @@ type IssuesResponse struct {
 
 // GetQueueIssues fetches issues from a specific queue
 func (c *Client) GetQueueIssues(projectKey, queueID string, start, limit int) ([]Issue, error) {
+	// Use cached service desk ID if available, otherwise get it
+	serviceDeskID := c.serviceDeskID
+	if serviceDeskID == "" {
+		var err error
+		serviceDeskID, err = c.GetServiceDeskID(projectKey)
+		if err != nil {
+			return nil, err
+		}
+		c.serviceDeskID = serviceDeskID
+	}
+
 	path := fmt.Sprintf("/rest/servicedeskapi/servicedesk/%s/queue/%s/issue?start=%d&limit=%d",
-		projectKey, queueID, start, limit)
+		serviceDeskID, queueID, start, limit)
 
 	var resp IssuesResponse
 	if err := c.Get(path, &resp); err != nil {
