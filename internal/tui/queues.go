@@ -2,7 +2,9 @@ package tui
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/arch-err/jsm-tui/internal/config"
 	"github.com/arch-err/jsm-tui/internal/jira"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -11,18 +13,22 @@ import (
 // QueuesModel handles the queue list view
 type QueuesModel struct {
 	client        *jira.Client
+	cfg           *config.Config
 	projectKey    string
 	keys          KeyMap
 	queues        []jira.Queue
 	selectedIndex int
 	loading       bool
 	err           error
+	lastEscPress  time.Time
+	showEscHint   bool
 }
 
 // NewQueuesModel creates a new queue list model
-func NewQueuesModel(client *jira.Client, projectKey string, keys KeyMap) *QueuesModel {
+func NewQueuesModel(client *jira.Client, cfg *config.Config, projectKey string, keys KeyMap) *QueuesModel {
 	return &QueuesModel{
 		client:     client,
+		cfg:        cfg,
 		projectKey: projectKey,
 		keys:       keys,
 		loading:    true,
@@ -30,6 +36,7 @@ func NewQueuesModel(client *jira.Client, projectKey string, keys KeyMap) *Queues
 }
 
 type queuesLoadedMsg struct{ queues []jira.Queue }
+type clearEscHintMsg struct{}
 
 // Init initializes the view
 func (m *QueuesModel) Init() tea.Cmd {
@@ -53,6 +60,10 @@ func (m *QueuesModel) Update(msg tea.Msg) (*QueuesModel, tea.Cmd) {
 	case queuesLoadedMsg:
 		m.queues = msg.queues
 		m.loading = false
+		return m, nil
+
+	case clearEscHintMsg:
+		m.showEscHint = false
 		return m, nil
 
 	case tea.KeyMsg:
@@ -84,6 +95,39 @@ func (m *QueuesModel) Update(msg tea.Msg) (*QueuesModel, tea.Cmd) {
 		case key.Matches(msg, m.keys.Refresh):
 			m.loading = true
 			return m, m.fetchQueues()
+
+		case key.Matches(msg, m.keys.ToggleFavorite):
+			// Toggle favorite for selected queue
+			if len(m.queues) > 0 {
+				selectedQueue := m.queues[m.selectedIndex]
+				m.cfg.ToggleFavoriteQueue(selectedQueue.Name)
+				if err := m.cfg.Save(); err != nil {
+					m.err = err
+					return m, nil
+				}
+				// Update client's favorite list
+				m.client.UpdateFavorites(m.cfg.FavoriteQueues)
+				// Refresh queues to show updated favorite status
+				m.loading = true
+				return m, m.fetchQueues()
+			}
+			return m, nil
+
+		case key.Matches(msg, m.keys.Back):
+			// Double-tap ESC to quit
+			now := time.Now()
+			// Check if last ESC was within 2 seconds
+			if !m.lastEscPress.IsZero() && now.Sub(m.lastEscPress) < 2*time.Second {
+				// Second ESC press within 2 seconds - quit
+				return m, tea.Quit
+			}
+			// First ESC press - show hint
+			m.lastEscPress = now
+			m.showEscHint = true
+			// Clear hint after 2 seconds
+			return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+				return clearEscHintMsg{}
+			})
 		}
 	}
 
@@ -119,7 +163,11 @@ func (m *QueuesModel) View() string {
 		s += line + "\n"
 	}
 
-	s += "\n" + HelpStyle.Render("↑/k up • ↓/j down • enter select • r refresh • q quit")
+	helpText := "↑/k up • ↓/j down • enter select • * favorite • r refresh • esc quit"
+	if m.showEscHint {
+		helpText = "Press ESC again to quit"
+	}
+	s += "\n" + HelpStyle.Render(helpText)
 
 	return s
 }

@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/arch-err/jsm-tui/internal/config"
 	"github.com/arch-err/jsm-tui/internal/jira"
@@ -48,7 +47,7 @@ func NewModel(cfg *config.Config) Model {
 		client:      client,
 		keys:        keys,
 		currentView: QueueListView,
-		queuesView:  NewQueuesModel(client, cfg.Project, keys),
+		queuesView:  NewQueuesModel(client, cfg, cfg.Project, keys),
 	}
 }
 
@@ -67,12 +66,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		// Global key bindings
-		switch {
-		case key.Matches(msg, m.keys.Quit):
-			// Only quit from root view
-			if m.currentView == QueueListView {
-				return m, tea.Quit
-			}
+		switch msg.String() {
+		case "ctrl+c":
+			// Force quit from anywhere
+			return m, tea.Quit
 		}
 
 	case errorMsg:

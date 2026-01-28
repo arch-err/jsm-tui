@@ -65,3 +65,38 @@ func Load() (*Config, error) {
 
 	return &cfg, nil
 }
+
+// Save writes the config back to ~/.config/jsm-tui/config.yaml
+func (c *Config) Save() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	configPath := filepath.Join(homeDir, ".config", "jsm-tui", "config.yaml")
+
+	data, err := yaml.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config file at %s: %w", configPath, err)
+	}
+
+	return nil
+}
+
+// ToggleFavoriteQueue adds or removes a queue from favorites
+func (c *Config) ToggleFavoriteQueue(queueName string) {
+	// Check if already a favorite
+	for i, name := range c.FavoriteQueues {
+		if name == queueName {
+			// Remove from favorites
+			c.FavoriteQueues = append(c.FavoriteQueues[:i], c.FavoriteQueues[i+1:]...)
+			return
+		}
+	}
+	// Add to favorites
+	c.FavoriteQueues = append(c.FavoriteQueues, queueName)
+}

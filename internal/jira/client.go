@@ -30,6 +30,11 @@ func NewClient(cfg *config.Config) *Client {
 	}
 }
 
+// UpdateFavorites updates the client's favorite queues list
+func (c *Client) UpdateFavorites(favorites []string) {
+	c.favoriteQueues = favorites
+}
+
 // doRequest executes an HTTP request with authentication
 func (c *Client) doRequest(method, path string, body interface{}) (*http.Response, error) {
 	var bodyReader io.Reader
