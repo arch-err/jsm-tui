@@ -17,6 +17,7 @@ const (
 	IssueDetailView
 	TransitionView
 	CommentView
+	AssignView
 )
 
 // Model is the root application model
@@ -35,6 +36,7 @@ type Model struct {
 	detailView     *DetailModel
 	transitionView *TransitionModel
 	commentView    *CommentModel
+	assignView     *AssignModel
 }
 
 // NewModel creates a new application model
@@ -124,6 +126,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentView = IssueDetailView
 		m.commentView = nil
 		return m, m.detailView.Refresh()
+
+	case openAssignMsg:
+		m.assignView = NewAssignModel(m.client, msg.issue, m.keys, m.cfg.Username, m.width, m.height)
+		m.currentView = AssignView
+		return m, m.assignView.Init()
+
+	case assignCompletedMsg:
+		m.currentView = IssueDetailView
+		m.assignView = nil
+		return m, m.detailView.Refresh()
 	}
 
 	// Route to current view
@@ -139,6 +151,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.transitionView, cmd = m.transitionView.Update(msg)
 	case CommentView:
 		m.commentView, cmd = m.commentView.Update(msg)
+	case AssignView:
+		m.assignView, cmd = m.assignView.Update(msg)
 	}
 
 	return m, cmd
@@ -161,6 +175,8 @@ func (m Model) View() string {
 		return m.transitionView.View()
 	case CommentView:
 		return m.commentView.View()
+	case AssignView:
+		return m.assignView.View()
 	}
 
 	return "Unknown view"
@@ -177,3 +193,4 @@ type openCommentMsg struct{ issue jira.Issue }
 type backToDetailMsg struct{}
 type transitionCompletedMsg struct{}
 type commentAddedMsg struct{}
+type openAssignMsg struct{ issue jira.Issue }

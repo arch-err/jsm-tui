@@ -100,6 +100,11 @@ func (m *DetailModel) Update(msg tea.Msg) (*DetailModel, tea.Cmd) {
 				return openCommentMsg{issue: m.issue}
 			}
 
+		case key.Matches(msg, m.keys.Assign):
+			return m, func() tea.Msg {
+				return openAssignMsg{issue: m.issue}
+			}
+
 		case key.Matches(msg, m.keys.Refresh):
 			return m, m.Refresh()
 		}
@@ -180,7 +185,7 @@ func (m *DetailModel) View() string {
 
 	s := HeaderStyle.Render(fmt.Sprintf("Issue Detail - %s", m.issue.Key)) + "\n\n"
 	s += m.viewport.View()
-	s += "\n\n" + HelpStyle.Render("t transition • c comment • esc back • r refresh • ↑/↓ scroll")
+	s += "\n\n" + HelpStyle.Render("t transition • c comment • a assign • esc back • r refresh • ↑/↓ scroll")
 
 	return s
 }

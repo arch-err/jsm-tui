@@ -21,6 +21,7 @@ type KeyMap struct {
 	ToggleHideNonFavorites key.Binding
 	GoToTop                key.Binding
 	GoToBottom             key.Binding
+	Assign                 key.Binding
 }
 
 // DefaultKeyMap returns the default key bindings
@@ -93,6 +94,10 @@ func DefaultKeyMap() KeyMap {
 		GoToBottom: key.NewBinding(
 			key.WithKeys("G"),
 			key.WithHelp("G", "go to bottom"),
+		),
+		Assign: key.NewBinding(
+			key.WithKeys("a"),
+			key.WithHelp("a", "assign"),
 		),
 	}
 }

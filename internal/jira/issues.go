@@ -1,6 +1,9 @@
 package jira
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+)
 
 // Issue represents a Jira issue
 type Issue struct {
@@ -39,6 +42,8 @@ type Priority struct {
 
 // User represents a Jira user
 type User struct {
+	AccountID    string `json:"accountId,omitempty"`
+	Name         string `json:"name,omitempty"` // For Jira Server/Data Center
 	DisplayName  string `json:"displayName"`
 	EmailAddress string `json:"emailAddress"`
 	Active       bool   `json:"active"`
@@ -98,4 +103,43 @@ func (c *Client) GetIssue(issueKey string) (*Issue, error) {
 	}
 
 	return &issue, nil
+}
+
+// SearchAssignableUsers searches for users that can be assigned to an issue
+func (c *Client) SearchAssignableUsers(issueKey, query string) ([]User, error) {
+	// Jira Server uses 'username', Jira Cloud uses 'query' - include both for compatibility
+	path := fmt.Sprintf("/rest/api/2/user/assignable/search?issueKey=%s&username=%s&query=%s&maxResults=10",
+		url.QueryEscape(issueKey), url.QueryEscape(query), url.QueryEscape(query))
+
+	var users []User
+	if err := c.Get(path, &users); err != nil {
+		return nil, fmt.Errorf("failed to search users: %w", err)
+	}
+
+	return users, nil
+}
+
+// AssignIssue assigns an issue to a user. Pass nil to unassign.
+func (c *Client) AssignIssue(issueKey string, user *User) error {
+	path := fmt.Sprintf("/rest/api/2/issue/%s/assignee", issueKey)
+
+	var body map[string]interface{}
+	if user == nil {
+		// Unassign - send null or -1 depending on Jira version
+		body = map[string]interface{}{"name": nil}
+	} else if user.Name != "" {
+		// Jira Server/Data Center uses "name"
+		body = map[string]interface{}{"name": user.Name}
+	} else if user.AccountID != "" {
+		// Jira Cloud uses "accountId"
+		body = map[string]interface{}{"accountId": user.AccountID}
+	}
+
+	resp, err := c.doRequest("PUT", path, body)
+	if err != nil {
+		return fmt.Errorf("failed to assign issue: %w", err)
+	}
+	resp.Body.Close()
+
+	return nil
 }
