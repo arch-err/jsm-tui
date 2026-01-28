@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-28
+
+### Added
+- Color-coded statuses (Escalated=red, In Progress=yellow, Waiting for support=orange, Pending=blue, Waiting for customer=green)
+- Assignee coloring (teal=me, white=unassigned, gray=others)
+- Dimmed row text for issues assigned to others
+- Scrollable issues list with scroll indicators
+- `G` keybind to go to bottom of lists
+- `gg` keybind (double-tap) to go to top of lists
+- `h` keybind to toggle hiding non-favorite queues
+- Persistent `hide_non_favorites` setting in config
+
+### Changed
+- Restructured config: `favorite_queues` moved to `queues.favorites`
+- Favorite queues now display in config-defined order
+- Improved column alignment with proper ANSI code handling
+- Condensed help text navigation hints
+- Hide status column in "All" queue view
+- Issues view now receives window dimensions on creation
+
 ## [0.1.0] - 2026-01-28
 
 ### Added
@@ -31,5 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI/CD pipeline with GitHub Actions
 - Automated releases with GoReleaser
 
-[Unreleased]: https://github.com/arch-err/jsm-tui/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/arch-err/jsm-tui/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/arch-err/jsm-tui/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/arch-err/jsm-tui/releases/tag/v0.1.0
