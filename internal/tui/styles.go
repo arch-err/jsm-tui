@@ -10,7 +10,11 @@ var (
 	errorColor     = lipgloss.Color("#FF0000")
 	infoColor      = lipgloss.Color("#00BFFF")
 	subtleColor    = lipgloss.Color("#666666")
-	highlightColor = lipgloss.Color("#FFFF00")
+	yellowColor    = lipgloss.Color("#FFFF00")
+	orangeColor    = lipgloss.Color("#FF8C00")
+	blueColor      = lipgloss.Color("#4169E1")
+	tealColor      = lipgloss.Color("#20B2AA")
+	dimGrayColor   = lipgloss.Color("#555555")
 
 	// Base styles
 	BaseStyle = lipgloss.NewStyle().
@@ -58,12 +62,42 @@ var (
 			Bold(true)
 
 	StatusInProgressStyle = lipgloss.NewStyle().
-				Foreground(warningColor).
+				Foreground(yellowColor).
 				Bold(true)
 
 	StatusDoneStyle = lipgloss.NewStyle().
 			Foreground(successColor).
 			Bold(true)
+
+	StatusEscalatedStyle = lipgloss.NewStyle().
+				Foreground(errorColor).
+				Bold(true)
+
+	StatusWaitingSupportStyle = lipgloss.NewStyle().
+					Foreground(orangeColor).
+					Bold(true)
+
+	StatusPendingStyle = lipgloss.NewStyle().
+				Foreground(blueColor).
+				Bold(true)
+
+	StatusWaitingCustomerStyle = lipgloss.NewStyle().
+					Foreground(successColor).
+					Bold(true)
+
+	// Assignee styles
+	AssigneeMeStyle = lipgloss.NewStyle().
+			Foreground(tealColor)
+
+	AssigneeUnassignedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF"))
+
+	AssigneeOtherStyle = lipgloss.NewStyle().
+				Foreground(dimGrayColor)
+
+	// Dimmed row style (for issues assigned to others)
+	DimmedTextStyle = lipgloss.NewStyle().
+			Foreground(dimGrayColor)
 
 	// Priority styles
 	PriorityHighStyle = lipgloss.NewStyle().
@@ -98,16 +132,43 @@ var (
 			Foreground(subtleColor)
 )
 
-// GetStatusStyle returns the appropriate style for a status
-func GetStatusStyle(statusCategory string) lipgloss.Style {
-	switch statusCategory {
-	case "new", "indeterminate":
-		return StatusOpenStyle
-	case "done":
+// GetStatusStyle returns the appropriate style for a status name
+func GetStatusStyle(statusName string) lipgloss.Style {
+	switch statusName {
+	case "Escalated":
+		return StatusEscalatedStyle
+	case "In Progress", "In progress":
+		return StatusInProgressStyle
+	case "Waiting for support", "Waiting for Support":
+		return StatusWaitingSupportStyle
+	case "Pending":
+		return StatusPendingStyle
+	case "Waiting for customer", "Waiting for Customer":
+		return StatusWaitingCustomerStyle
+	case "Done", "Resolved", "Closed":
 		return StatusDoneStyle
 	default:
-		return StatusInProgressStyle
+		return StatusOpenStyle
 	}
+}
+
+// GetAssigneeStyle returns the appropriate style for an assignee
+func GetAssigneeStyle(assigneeName string, currentUser string) lipgloss.Style {
+	if assigneeName == "Unassigned" || assigneeName == "" {
+		return AssigneeUnassignedStyle
+	}
+	if assigneeName == currentUser {
+		return AssigneeMeStyle
+	}
+	return AssigneeOtherStyle
+}
+
+// IsAssignedToOther returns true if the issue is assigned to someone other than the current user
+func IsAssignedToOther(assigneeName string, currentUser string) bool {
+	if assigneeName == "Unassigned" || assigneeName == "" {
+		return false
+	}
+	return assigneeName != currentUser
 }
 
 // GetPriorityStyle returns the appropriate style for a priority

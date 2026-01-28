@@ -77,25 +77,47 @@ func (c *Client) GetQueues(projectKey string) ([]Queue, error) {
 		return nil, fmt.Errorf("failed to get queues: %w", err)
 	}
 
-	// Mark queues as favorites based on config
-	favoriteMap := make(map[string]bool)
-	for _, name := range c.favoriteQueues {
-		favoriteMap[name] = true
+	// Build favorite index map for ordering (lower index = higher priority)
+	favoriteIndex := make(map[string]int)
+	for i, name := range c.favoriteQueues {
+		favoriteIndex[name] = i
 	}
 
+	// Mark queues as favorites based on config
 	for i := range resp.Values {
-		if favoriteMap[resp.Values[i].Name] {
+		if _, ok := favoriteIndex[resp.Values[i].Name]; ok {
 			resp.Values[i].IsFavorite = true
 		}
 	}
 
-	// Sort queues: favorites first, then by name
-	sort.SliceStable(resp.Values, func(i, j int) bool {
-		if resp.Values[i].IsFavorite != resp.Values[j].IsFavorite {
-			return resp.Values[i].IsFavorite
+	// Filter out non-favorites if configured
+	var queues []Queue
+	if c.hideNonFavorites {
+		for _, q := range resp.Values {
+			if q.IsFavorite {
+				queues = append(queues, q)
+			}
 		}
-		return resp.Values[i].Name < resp.Values[j].Name
+	} else {
+		queues = resp.Values
+	}
+
+	// Sort queues: favorites first (in config order), then non-favorites by name
+	sort.SliceStable(queues, func(i, j int) bool {
+		iFav := queues[i].IsFavorite
+		jFav := queues[j].IsFavorite
+
+		if iFav && jFav {
+			// Both are favorites - sort by config order
+			return favoriteIndex[queues[i].Name] < favoriteIndex[queues[j].Name]
+		}
+		if iFav != jFav {
+			// Favorites come first
+			return iFav
+		}
+		// Both are non-favorites - sort by name
+		return queues[i].Name < queues[j].Name
 	})
 
-	return resp.Values, nil
+	return queues, nil
 }

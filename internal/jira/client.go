@@ -13,26 +13,29 @@ import (
 
 // Client handles communication with Jira API
 type Client struct {
-	baseURL        string
-	httpClient     *http.Client
-	auth           config.Auth
-	serviceDeskID  string   // Cached service desk ID
-	favoriteQueues []string // List of favorite queue names from config
+	baseURL           string
+	httpClient        *http.Client
+	auth              config.Auth
+	serviceDeskID     string   // Cached service desk ID
+	favoriteQueues    []string // List of favorite queue names from config
+	hideNonFavorites bool // Whether to hide non-favorite queues
 }
 
 // NewClient creates a new Jira API client
 func NewClient(cfg *config.Config) *Client {
 	return &Client{
-		baseURL:        strings.TrimRight(cfg.URL, "/"),
-		httpClient:     &http.Client{},
-		auth:           cfg.Auth,
-		favoriteQueues: cfg.FavoriteQueues,
+		baseURL:           strings.TrimRight(cfg.URL, "/"),
+		httpClient:        &http.Client{},
+		auth:              cfg.Auth,
+		favoriteQueues:   cfg.Queues.Favorites,
+		hideNonFavorites: cfg.Queues.HideNonFavorites,
 	}
 }
 
 // UpdateFavorites updates the client's favorite queues list
-func (c *Client) UpdateFavorites(favorites []string) {
+func (c *Client) UpdateFavorites(favorites []string, hideNonFavorites bool) {
 	c.favoriteQueues = favorites
+	c.hideNonFavorites = hideNonFavorites
 }
 
 // doRequest executes an HTTP request with authentication

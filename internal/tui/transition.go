@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/arch-err/jsm-tui/internal/jira"
 	"github.com/charmbracelet/bubbles/key"
@@ -18,6 +19,7 @@ type TransitionModel struct {
 	loading       bool
 	executing     bool
 	err           error
+	lastGPress    time.Time
 }
 
 // NewTransitionModel creates a new transition model
@@ -102,6 +104,22 @@ func (m *TransitionModel) Update(msg tea.Msg) (*TransitionModel, tea.Cmd) {
 			return m, func() tea.Msg {
 				return backToDetailMsg{}
 			}
+
+		case key.Matches(msg, m.keys.GoToBottom):
+			if len(m.transitions) > 0 {
+				m.selectedIndex = len(m.transitions) - 1
+			}
+			return m, nil
+
+		case key.Matches(msg, m.keys.GoToTop):
+			now := time.Now()
+			if !m.lastGPress.IsZero() && now.Sub(m.lastGPress) < 500*time.Millisecond {
+				m.selectedIndex = 0
+				m.lastGPress = time.Time{}
+			} else {
+				m.lastGPress = now
+			}
+			return m, nil
 		}
 	}
 
@@ -137,7 +155,7 @@ func (m *TransitionModel) View() string {
 		s += line + "\n"
 	}
 
-	s += "\n" + HelpStyle.Render("↑/k up • ↓/j down • enter execute • esc cancel")
+	s += "\n" + HelpStyle.Render("↑↓/jk navigate • enter execute • esc cancel")
 
 	return s
 }

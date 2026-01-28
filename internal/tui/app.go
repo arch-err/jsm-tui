@@ -62,7 +62,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		return m, nil
+		// Don't return early - let child views handle this too
 
 	case tea.KeyMsg:
 		// Global key bindings
@@ -78,7 +78,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case queueSelectedMsg:
 		// Navigate to issue list
-		m.issuesView = NewIssuesModel(m.client, m.cfg.Project, msg.queue, m.keys)
+		m.issuesView = NewIssuesModel(m.client, m.cfg.Project, msg.queue, m.keys, m.cfg.Username, m.width, m.height)
 		m.currentView = IssueListView
 		return m, m.issuesView.Init()
 

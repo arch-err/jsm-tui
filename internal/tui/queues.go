@@ -21,7 +21,10 @@ type QueuesModel struct {
 	loading       bool
 	err           error
 	lastEscPress  time.Time
+	lastGPress    time.Time
 	showEscHint   bool
+	width         int
+	height        int
 }
 
 // NewQueuesModel creates a new queue list model
@@ -57,6 +60,11 @@ func (m *QueuesModel) fetchQueues() tea.Cmd {
 // Update handles messages
 func (m *QueuesModel) Update(msg tea.Msg) (*QueuesModel, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
+
 	case queuesLoadedMsg:
 		m.queues = msg.queues
 		m.loading = false
@@ -106,12 +114,27 @@ func (m *QueuesModel) Update(msg tea.Msg) (*QueuesModel, tea.Cmd) {
 					return m, nil
 				}
 				// Update client's favorite list
-				m.client.UpdateFavorites(m.cfg.FavoriteQueues)
+				m.client.UpdateFavorites(m.cfg.Queues.Favorites, m.cfg.Queues.HideNonFavorites)
 				// Refresh queues to show updated favorite status
 				m.loading = true
 				return m, m.fetchQueues()
 			}
 			return m, nil
+
+		case key.Matches(msg, m.keys.ToggleHideNonFavorites):
+			// Toggle hiding non-favorite queues
+			m.cfg.Queues.HideNonFavorites = !m.cfg.Queues.HideNonFavorites
+			if err := m.cfg.Save(); err != nil {
+				m.err = err
+				return m, nil
+			}
+			// Update client settings
+			m.client.UpdateFavorites(m.cfg.Queues.Favorites, m.cfg.Queues.HideNonFavorites)
+			// Reset selection to avoid out of bounds
+			m.selectedIndex = 0
+			// Refresh queues to apply filter
+			m.loading = true
+			return m, m.fetchQueues()
 
 		case key.Matches(msg, m.keys.Back):
 			// Double-tap ESC to quit
@@ -128,6 +151,24 @@ func (m *QueuesModel) Update(msg tea.Msg) (*QueuesModel, tea.Cmd) {
 			return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 				return clearEscHintMsg{}
 			})
+
+		case key.Matches(msg, m.keys.GoToBottom):
+			// G - go to bottom
+			if len(m.queues) > 0 {
+				m.selectedIndex = len(m.queues) - 1
+			}
+			return m, nil
+
+		case key.Matches(msg, m.keys.GoToTop):
+			// gg - double tap g to go to top
+			now := time.Now()
+			if !m.lastGPress.IsZero() && now.Sub(m.lastGPress) < 500*time.Millisecond {
+				m.selectedIndex = 0
+				m.lastGPress = time.Time{}
+			} else {
+				m.lastGPress = now
+			}
+			return m, nil
 		}
 	}
 
@@ -163,7 +204,7 @@ func (m *QueuesModel) View() string {
 		s += line + "\n"
 	}
 
-	helpText := "↑/k up • ↓/j down • enter select • * favorite • r refresh • esc quit"
+	helpText := "↑↓/jk navigate • enter select • * favorite • h hide others • r refresh • esc quit"
 	if m.showEscHint {
 		helpText = "Press ESC again to quit"
 	}

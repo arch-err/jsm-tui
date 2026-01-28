@@ -17,7 +17,10 @@ type KeyMap struct {
 	Cancel         key.Binding
 	PageUp         key.Binding
 	PageDown       key.Binding
-	ToggleFavorite key.Binding
+	ToggleFavorite         key.Binding
+	ToggleHideNonFavorites key.Binding
+	GoToTop                key.Binding
+	GoToBottom             key.Binding
 }
 
 // DefaultKeyMap returns the default key bindings
@@ -78,6 +81,18 @@ func DefaultKeyMap() KeyMap {
 		ToggleFavorite: key.NewBinding(
 			key.WithKeys("*"),
 			key.WithHelp("*", "toggle favorite"),
+		),
+		ToggleHideNonFavorites: key.NewBinding(
+			key.WithKeys("h"),
+			key.WithHelp("h", "toggle hide non-favorites"),
+		),
+		GoToTop: key.NewBinding(
+			key.WithKeys("g"),
+			key.WithHelp("gg", "go to top"),
+		),
+		GoToBottom: key.NewBinding(
+			key.WithKeys("G"),
+			key.WithHelp("G", "go to bottom"),
 		),
 	}
 }

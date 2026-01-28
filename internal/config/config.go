@@ -10,10 +10,17 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	URL             string   `yaml:"url"`
-	Auth            Auth     `yaml:"auth"`
-	Project         string   `yaml:"project"`
-	FavoriteQueues  []string `yaml:"favorite_queues,omitempty"`
+	URL      string       `yaml:"url"`
+	Auth     Auth         `yaml:"auth"`
+	Project  string       `yaml:"project"`
+	Username string       `yaml:"username,omitempty"` // Display name to identify "me"
+	Queues   QueuesConfig `yaml:"queues,omitempty"`
+}
+
+// QueuesConfig contains queue display settings
+type QueuesConfig struct {
+	Favorites        []string `yaml:"favorites,omitempty"`
+	HideNonFavorites bool     `yaml:"hide_non_favorites,omitempty"`
 }
 
 // Auth contains authentication details
@@ -90,13 +97,13 @@ func (c *Config) Save() error {
 // ToggleFavoriteQueue adds or removes a queue from favorites
 func (c *Config) ToggleFavoriteQueue(queueName string) {
 	// Check if already a favorite
-	for i, name := range c.FavoriteQueues {
+	for i, name := range c.Queues.Favorites {
 		if name == queueName {
 			// Remove from favorites
-			c.FavoriteQueues = append(c.FavoriteQueues[:i], c.FavoriteQueues[i+1:]...)
+			c.Queues.Favorites = append(c.Queues.Favorites[:i], c.Queues.Favorites[i+1:]...)
 			return
 		}
 	}
 	// Add to favorites
-	c.FavoriteQueues = append(c.FavoriteQueues, queueName)
+	c.Queues.Favorites = append(c.Queues.Favorites, queueName)
 }

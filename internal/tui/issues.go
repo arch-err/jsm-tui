@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/arch-err/jsm-tui/internal/jira"
 	"github.com/charmbracelet/bubbles/key"
@@ -16,18 +17,26 @@ type IssuesModel struct {
 	keys          KeyMap
 	issues        []jira.Issue
 	selectedIndex int
+	scrollOffset  int
 	loading       bool
 	err           error
+	width         int
+	height        int
+	currentUser   string
+	lastGPress    time.Time
 }
 
 // NewIssuesModel creates a new issue list model
-func NewIssuesModel(client *jira.Client, projectKey string, queue jira.Queue, keys KeyMap) *IssuesModel {
+func NewIssuesModel(client *jira.Client, projectKey string, queue jira.Queue, keys KeyMap, currentUser string, width, height int) *IssuesModel {
 	return &IssuesModel{
-		client:     client,
-		projectKey: projectKey,
-		queue:      queue,
-		keys:       keys,
-		loading:    true,
+		client:      client,
+		projectKey:  projectKey,
+		queue:       queue,
+		keys:        keys,
+		loading:     true,
+		currentUser: currentUser,
+		width:       width,
+		height:      height,
 	}
 }
 
@@ -52,6 +61,11 @@ func (m *IssuesModel) fetchIssues() tea.Cmd {
 // Update handles messages
 func (m *IssuesModel) Update(msg tea.Msg) (*IssuesModel, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
+
 	case issuesLoadedMsg:
 		m.issues = msg.issues
 		m.loading = false
@@ -66,12 +80,14 @@ func (m *IssuesModel) Update(msg tea.Msg) (*IssuesModel, tea.Cmd) {
 		case key.Matches(msg, m.keys.Up):
 			if m.selectedIndex > 0 {
 				m.selectedIndex--
+				m.adjustScroll()
 			}
 			return m, nil
 
 		case key.Matches(msg, m.keys.Down):
 			if m.selectedIndex < len(m.issues)-1 {
 				m.selectedIndex++
+				m.adjustScroll()
 			}
 			return m, nil
 
@@ -91,10 +107,56 @@ func (m *IssuesModel) Update(msg tea.Msg) (*IssuesModel, tea.Cmd) {
 		case key.Matches(msg, m.keys.Refresh):
 			m.loading = true
 			return m, m.fetchIssues()
+
+		case key.Matches(msg, m.keys.GoToBottom):
+			// G - go to bottom
+			if len(m.issues) > 0 {
+				m.selectedIndex = len(m.issues) - 1
+				m.adjustScroll()
+			}
+			return m, nil
+
+		case key.Matches(msg, m.keys.GoToTop):
+			// gg - double tap g to go to top
+			now := time.Now()
+			if !m.lastGPress.IsZero() && now.Sub(m.lastGPress) < 500*time.Millisecond {
+				m.selectedIndex = 0
+				m.scrollOffset = 0
+				m.lastGPress = time.Time{}
+			} else {
+				m.lastGPress = now
+			}
+			return m, nil
 		}
 	}
 
 	return m, nil
+}
+
+// visibleRows returns the number of issue rows that can be displayed
+func (m *IssuesModel) visibleRows() int {
+	// Reserve lines for: header (3), table header (1), scroll indicators (2), blank + help (2)
+	reserved := 8
+	available := m.height - reserved
+	if available < 1 {
+		available = 1
+	}
+	return available
+}
+
+// adjustScroll ensures the selected item is visible
+func (m *IssuesModel) adjustScroll() {
+	visible := m.visibleRows()
+
+	// Scroll up if selection is above viewport
+	if m.selectedIndex < m.scrollOffset {
+		m.scrollOffset = m.selectedIndex
+	}
+
+	// Scroll down if selection is below viewport
+	if m.selectedIndex >= m.scrollOffset+visible {
+		m.scrollOffset = m.selectedIndex - visible + 1
+	}
 }
 
 // View renders the issue list
@@ -111,38 +173,117 @@ func (m *IssuesModel) View() string {
 		return fmt.Sprintf("No issues in queue: %s", m.queue.Name)
 	}
 
+	// Calculate column widths based on terminal width
+	keyWidth := 9 // 8 chars + 1 space
+	statusWidth := 20
+	assigneeWidth := 20
+	padding := 3 // spaces between columns
+	showStatus := m.queue.Name != "All"
+
+	// Use full terminal width, or default to 120 if width not set
+	availableWidth := m.width
+	if availableWidth == 0 {
+		availableWidth = 120
+	}
+
+	// Calculate summary width (remaining space)
+	columnsWidth := keyWidth + assigneeWidth + (padding * 2) + 2
+	if showStatus {
+		columnsWidth += statusWidth + padding
+	}
+	summaryWidth := availableWidth - columnsWidth
+	if summaryWidth < 20 {
+		summaryWidth = 20 // minimum width
+	}
+
 	s := HeaderStyle.Render(fmt.Sprintf("Issues - %s > %s", m.projectKey, m.queue.Name)) + "\n\n"
 
 	// Table header
-	s += TableHeaderStyle.Render(fmt.Sprintf("%-12s %-40s %-15s %-10s %-15s", "Key", "Summary", "Status", "Priority", "Assignee")) + "\n"
+	var headerFormat string
+	if showStatus {
+		headerFormat = fmt.Sprintf("%%-%ds   %%-%ds   %%-%ds   %%-%ds", keyWidth, summaryWidth, statusWidth, assigneeWidth)
+		s += TableHeaderStyle.Render(fmt.Sprintf(headerFormat, "Key", "Summary", "Status", "Assignee")) + "\n"
+	} else {
+		headerFormat = fmt.Sprintf("%%-%ds   %%-%ds   %%-%ds", keyWidth, summaryWidth, assigneeWidth)
+		s += TableHeaderStyle.Render(fmt.Sprintf(headerFormat, "Key", "Summary", "Assignee")) + "\n"
+	}
 
-	for i, issue := range m.issues {
+	// Calculate visible range
+	visible := m.visibleRows()
+	startIdx := m.scrollOffset
+	endIdx := m.scrollOffset + visible
+	if endIdx > len(m.issues) {
+		endIdx = len(m.issues)
+	}
+
+	// Show scroll indicator if there are items above
+	if startIdx > 0 {
+		s += HelpStyle.Render(fmt.Sprintf("  ↑ %d more above", startIdx)) + "\n"
+	}
+
+	for i := startIdx; i < endIdx; i++ {
+		issue := m.issues[i]
 		assignee := "Unassigned"
 		if issue.Fields.Assignee != nil {
 			assignee = issue.Fields.Assignee.DisplayName
 		}
 
-		statusStyle := GetStatusStyle(issue.Fields.Status.StatusCategory.Name)
-		priorityStyle := GetPriorityStyle(issue.Fields.Priority.Name)
+		// Get styles based on status name and assignee
+		assigneeStyle := GetAssigneeStyle(assignee, m.currentUser)
+		isDimmed := IsAssignedToOther(assignee, m.currentUser)
 
 		// Truncate summary if too long
 		summary := issue.Fields.Summary
-		if len(summary) > 38 {
-			summary = summary[:35] + "..."
+		if len(summary) > summaryWidth {
+			summary = summary[:summaryWidth-3] + "..."
 		}
 
 		// Truncate assignee if too long
-		if len(assignee) > 13 {
-			assignee = assignee[:10] + "..."
+		displayAssignee := assignee
+		if len(displayAssignee) > assigneeWidth {
+			displayAssignee = displayAssignee[:assigneeWidth-3] + "..."
 		}
 
-		line := fmt.Sprintf("%-12s %-40s %-15s %-10s %-15s",
-			issue.Key,
-			summary,
-			statusStyle.Render(issue.Fields.Status.Name),
-			priorityStyle.Render(issue.Fields.Priority.Name),
-			assignee,
-		)
+		// Pad fields before styling to avoid ANSI codes breaking alignment
+		paddedKey := fmt.Sprintf("%-*s", keyWidth, issue.Key)
+		paddedSummary := fmt.Sprintf("%-*s", summaryWidth, summary)
+		paddedAssignee := fmt.Sprintf("%-*s", assigneeWidth, displayAssignee)
+
+		// Apply styles - dim text if assigned to others (except status)
+		var styledKey, styledSummary string
+		if isDimmed {
+			styledKey = DimmedTextStyle.Render(paddedKey)
+			styledSummary = DimmedTextStyle.Render(paddedSummary)
+		} else {
+			styledKey = paddedKey
+			styledSummary = paddedSummary
+		}
+		styledAssignee := assigneeStyle.Render(paddedAssignee)
+
+		var line string
+		if showStatus {
+			// Truncate status if too long
+			status := issue.Fields.Status.Name
+			if len(status) > statusWidth {
+				status = status[:statusWidth-3] + "..."
+			}
+			paddedStatus := fmt.Sprintf("%-*s", statusWidth, status)
+			statusStyle := GetStatusStyle(issue.Fields.Status.Name)
+			styledStatus := statusStyle.Render(paddedStatus)
+
+			line = fmt.Sprintf("%s   %s   %s   %s",
+				styledKey,
+				styledSummary,
+				styledStatus,
+				styledAssignee,
+			)
+		} else {
+			line = fmt.Sprintf("%s   %s   %s",
+				styledKey,
+				styledSummary,
+				styledAssignee,
+			)
+		}
 
 		if i == m.selectedIndex {
 			line = SelectedStyle.Render(line)
@@ -151,7 +292,13 @@ func (m *IssuesModel) View() string {
 		s += line + "\n"
 	}
 
-	s += "\n" + HelpStyle.Render("↑/k up • ↓/j down • enter open • esc back • r refresh")
+	// Show scroll indicator if there are items below
+	remaining := len(m.issues) - endIdx
+	if remaining > 0 {
+		s += HelpStyle.Render(fmt.Sprintf("  ↓ %d more below", remaining)) + "\n"
+	}
+
+	s += "\n" + HelpStyle.Render("↑↓/jk navigate • enter open • esc back • r refresh")
 
 	return s
 }
