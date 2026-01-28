@@ -77,6 +77,18 @@ func (c *Client) GetQueues(projectKey string) ([]Queue, error) {
 		return nil, fmt.Errorf("failed to get queues: %w", err)
 	}
 
+	// Mark queues as favorites based on config
+	favoriteMap := make(map[string]bool)
+	for _, name := range c.favoriteQueues {
+		favoriteMap[name] = true
+	}
+
+	for i := range resp.Values {
+		if favoriteMap[resp.Values[i].Name] {
+			resp.Values[i].IsFavorite = true
+		}
+	}
+
 	// Sort queues: favorites first, then by name
 	sort.SliceStable(resp.Values, func(i, j int) bool {
 		if resp.Values[i].IsFavorite != resp.Values[j].IsFavorite {

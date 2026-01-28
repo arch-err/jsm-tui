@@ -13,18 +13,20 @@ import (
 
 // Client handles communication with Jira API
 type Client struct {
-	baseURL       string
-	httpClient    *http.Client
-	auth          config.Auth
-	serviceDeskID string // Cached service desk ID
+	baseURL        string
+	httpClient     *http.Client
+	auth           config.Auth
+	serviceDeskID  string   // Cached service desk ID
+	favoriteQueues []string // List of favorite queue names from config
 }
 
 // NewClient creates a new Jira API client
 func NewClient(cfg *config.Config) *Client {
 	return &Client{
-		baseURL:    strings.TrimRight(cfg.URL, "/"),
-		httpClient: &http.Client{},
-		auth:       cfg.Auth,
+		baseURL:        strings.TrimRight(cfg.URL, "/"),
+		httpClient:     &http.Client{},
+		auth:           cfg.Auth,
+		favoriteQueues: cfg.FavoriteQueues,
 	}
 }
 

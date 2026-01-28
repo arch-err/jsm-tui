@@ -10,9 +10,10 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	URL     string `yaml:"url"`
-	Auth    Auth   `yaml:"auth"`
-	Project string `yaml:"project"`
+	URL             string   `yaml:"url"`
+	Auth            Auth     `yaml:"auth"`
+	Project         string   `yaml:"project"`
+	FavoriteQueues  []string `yaml:"favorite_queues,omitempty"`
 }
 
 // Auth contains authentication details

@@ -25,6 +25,9 @@ auth:
   type: pat
   token: your-personal-access-token
 project: YOUR-PROJECT-KEY
+favorite_queues:
+  - "Main"
+  - "Assigned to me"
 ```
 
 ### Using Basic Authentication
@@ -36,6 +39,9 @@ auth:
   username: your-username
   password: your-password
 project: YOUR-PROJECT-KEY
+favorite_queues:
+  - "Main"
+  - "Assigned to me"
 ```
 
 ## Configuration Fields
@@ -88,6 +94,21 @@ The Service Desk project key.
 - **Type**: string
 - **Example**: `SD`, `SERVICEDESK`, `HELP`
 - This is the project abbreviation shown in issue keys (e.g., `SD-123`)
+
+### `favorite_queues` (optional)
+
+List of queue names to mark as favorites. Favorite queues appear at the top of the queue list with a ★ indicator.
+
+- **Type**: array of strings
+- **Example**:
+  ```yaml
+  favorite_queues:
+    - "Main"
+    - "Assigned to me"
+    - "High Priority"
+  ```
+- Queue names must match exactly as they appear in Jira (case-sensitive)
+- If not specified, no queues will be marked as favorites
 
 ## Creating a Personal Access Token
 

@@ -53,6 +53,9 @@ auth:
   # username: your-username
   # password: your-password
 project: YOUR-PROJECT-KEY
+favorite_queues:  # Optional: mark queues as favorites
+  - "Main"
+  - "Assigned to me"
 ```
 
 See the [configuration documentation](https://arch-err.github.io/jsm-tui/configuration/) for more details.
