@@ -319,9 +319,9 @@ func (m *AssignModel) View() string {
 
 	content.WriteString("\n")
 	if m.searchMode {
-		content.WriteString(HelpStyle.Render("type to search • enter select • esc back"))
+		content.WriteString(HelpStyle.Render("enter select • esc back"))
 	} else {
-		content.WriteString(HelpStyle.Render("↑↓/jk navigate • / search • enter assign • esc cancel"))
+		content.WriteString(HelpStyle.Render("/ search • enter assign • esc cancel"))
 	}
 
 	return m.renderPopup(content.String())

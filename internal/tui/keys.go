@@ -22,6 +22,13 @@ type KeyMap struct {
 	GoToTop                key.Binding
 	GoToBottom             key.Binding
 	Assign                 key.Binding
+	Yank                   key.Binding
+	Rename                 key.Binding
+	Command                key.Binding
+	Search                 key.Binding
+	NextMatch              key.Binding
+	PrevMatch              key.Binding
+	Workflow               key.Binding
 }
 
 // DefaultKeyMap returns the default key bindings
@@ -56,8 +63,8 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("?", "help"),
 		),
 		Transition: key.NewBinding(
-			key.WithKeys("t"),
-			key.WithHelp("t", "transition"),
+			key.WithKeys("s"),
+			key.WithHelp("s", "status/transition"),
 		),
 		AddComment: key.NewBinding(
 			key.WithKeys("c"),
@@ -98,6 +105,34 @@ func DefaultKeyMap() KeyMap {
 		Assign: key.NewBinding(
 			key.WithKeys("a"),
 			key.WithHelp("a", "assign"),
+		),
+		Yank: key.NewBinding(
+			key.WithKeys("y"),
+			key.WithHelp("y", "yank/copy"),
+		),
+		Rename: key.NewBinding(
+			key.WithKeys("R"),
+			key.WithHelp("R", "rename"),
+		),
+		Command: key.NewBinding(
+			key.WithKeys(":"),
+			key.WithHelp(":", "command"),
+		),
+		Search: key.NewBinding(
+			key.WithKeys("/"),
+			key.WithHelp("/", "search"),
+		),
+		NextMatch: key.NewBinding(
+			key.WithKeys("n"),
+			key.WithHelp("n", "next match"),
+		),
+		PrevMatch: key.NewBinding(
+			key.WithKeys("N"),
+			key.WithHelp("N", "prev match"),
+		),
+		Workflow: key.NewBinding(
+			key.WithKeys("w"),
+			key.WithHelp("w", "workflow"),
 		),
 	}
 }

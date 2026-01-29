@@ -20,13 +20,12 @@ var (
 	BaseStyle = lipgloss.NewStyle().
 			Padding(1, 2)
 
-	// Header style
+	// Header style (width should be set dynamically by views)
 	HeaderStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(primaryColor).
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderBottom(true).
-			Width(80)
+			BorderBottom(true)
 
 	// Title style
 	TitleStyle = lipgloss.NewStyle().

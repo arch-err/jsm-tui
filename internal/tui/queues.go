@@ -46,6 +46,12 @@ func (m *QueuesModel) Init() tea.Cmd {
 	return m.fetchQueues()
 }
 
+// Refresh reloads the queues
+func (m *QueuesModel) Refresh() tea.Cmd {
+	m.loading = true
+	return m.fetchQueues()
+}
+
 // fetchQueues loads queues from the API
 func (m *QueuesModel) fetchQueues() tea.Cmd {
 	return func() tea.Msg {
@@ -189,7 +195,11 @@ func (m *QueuesModel) View() string {
 		return "No queues found."
 	}
 
-	s := HeaderStyle.Render(fmt.Sprintf("Queues - %s", m.projectKey)) + "\n\n"
+	headerWidth := m.width
+	if headerWidth == 0 {
+		headerWidth = 80
+	}
+	s := HeaderStyle.Width(headerWidth).Render(fmt.Sprintf("Queues - %s", m.projectKey)) + "\n\n"
 
 	for i, queue := range m.queues {
 		// Add star indicator for favorite queues
@@ -204,7 +214,7 @@ func (m *QueuesModel) View() string {
 		s += line + "\n"
 	}
 
-	helpText := "↑↓/jk navigate • enter select • * favorite • h hide others • r refresh • esc quit"
+	helpText := "? help • enter select • esc quit"
 	if m.showEscHint {
 		helpText = "Press ESC again to quit"
 	}

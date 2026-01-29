@@ -3,9 +3,11 @@ package tui
 import (
 	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/arch-err/jsm-tui/internal/config"
 	"github.com/arch-err/jsm-tui/internal/jira"
+	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // ViewType represents the current view
@@ -18,17 +20,21 @@ const (
 	TransitionView
 	CommentView
 	AssignView
+	ConfirmView
+	HelpView
+	WorkflowView
 )
 
 // Model is the root application model
 type Model struct {
-	cfg        *config.Config
-	client     *jira.Client
-	keys       KeyMap
-	width      int
-	height     int
+	cfg         *config.Config
+	client      *jira.Client
+	keys        KeyMap
+	width       int
+	height      int
 	currentView ViewType
-	err        error
+	prevView    ViewType // For returning from confirm modal
+	err         error
 
 	// View models
 	queuesView     *QueuesModel
@@ -37,6 +43,15 @@ type Model struct {
 	transitionView *TransitionModel
 	commentView    *CommentModel
 	assignView     *AssignModel
+	confirmView    *ConfirmModel
+	helpView       *HelpModel
+	workflowView   *WorkflowModel
+
+	// Command bar
+	cmdBar *CmdBarModel
+
+	// ZZ quit tracking
+	waitingForZ bool
 }
 
 // NewModel creates a new application model
@@ -50,6 +65,7 @@ func NewModel(cfg *config.Config) Model {
 		keys:        keys,
 		currentView: QueueListView,
 		queuesView:  NewQueuesModel(client, cfg, cfg.Project, keys),
+		cmdBar:      NewCmdBarModel(80),
 	}
 }
 
@@ -60,18 +76,135 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles messages
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		// Don't return early - let child views handle this too
+	// Handle window size first
+	if wsm, ok := msg.(tea.WindowSizeMsg); ok {
+		m.width = wsm.Width
+		m.height = wsm.Height
+		m.cmdBar.width = wsm.Width
+	}
 
+	// Handle command bar results FIRST (before routing to cmdbar)
+	if result, ok := msg.(CmdBarResult); ok {
+		if result.Mode == CmdBarCommand && !result.Aborted {
+			// Execute command
+			if execMsg := ExecuteCommand(result.Input); execMsg != nil {
+				return m, func() tea.Msg { return execMsg }
+			}
+		} else if result.Mode == CmdBarSearch {
+			// Apply or clear search filter
+			return m, m.applySearch(result.Input)
+		}
+		return m, nil
+	}
+
+	// If command bar is actively being edited, route to it
+	if m.cmdBar.IsActive() {
+		var cmd tea.Cmd
+		m.cmdBar, cmd = m.cmdBar.Update(msg)
+		return m, cmd
+	}
+
+	// Handle close help (must be before HelpView routing)
+	if _, ok := msg.(closeHelpMsg); ok {
+		m.currentView = m.prevView
+		m.helpView = nil
+		return m, nil
+	}
+
+	// Handle help modal
+	if m.currentView == HelpView {
+		var cmd tea.Cmd
+		m.helpView, cmd = m.helpView.Update(msg)
+		return m, cmd
+	}
+
+	// Handle confirm modal
+	if m.currentView == ConfirmView {
+		var cmd tea.Cmd
+		m.confirmView, cmd = m.confirmView.Update(msg)
+		return m, cmd
+	}
+
+	// Handle confirm results
+	if result, ok := msg.(ConfirmResult); ok {
+		return m.handleConfirmResult(result)
+	}
+
+	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// Global key bindings
-		switch msg.String() {
-		case "ctrl+c":
-			// Force quit from anywhere
+		// Global key bindings (when not in command bar)
+
+		// ZZ to quit
+		if msg.String() == "Z" {
+			if m.waitingForZ {
+				return m, tea.Quit
+			}
+			m.waitingForZ = true
+			return m, nil
+		}
+		// Reset Z wait on any other key
+		if m.waitingForZ && msg.String() != "Z" {
+			m.waitingForZ = false
+		}
+
+		// Ctrl+C force quit
+		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
+		}
+
+		// Command mode
+		if key.Matches(msg, m.keys.Command) {
+			return m, m.cmdBar.Open(CmdBarCommand)
+		}
+
+		// Search mode
+		if key.Matches(msg, m.keys.Search) {
+			return m, m.cmdBar.Open(CmdBarSearch)
+		}
+
+		// Clear search with esc when showing search results
+		if key.Matches(msg, m.keys.Back) && m.cmdBar.Mode() == CmdBarShowSearch {
+			m.cmdBar.ClearSearch()
+			return m, m.applySearch("")
+		}
+
+		// Help modal
+		if key.Matches(msg, m.keys.Help) {
+			m.prevView = m.currentView
+			m.helpView = NewHelpModel(m.width, m.height)
+			m.currentView = HelpView
+			return m, nil
+		}
+
+		// Rename (R) - only in detail view
+		if key.Matches(msg, m.keys.Rename) && m.currentView == IssueDetailView {
+			m.prevView = m.currentView
+			m.confirmView = NewInputConfirmModel(
+				"rename",
+				"Rename Issue",
+				fmt.Sprintf("Enter new summary for %s:", m.detailView.issue.Key),
+				"New summary...",
+				m.detailView.issue.Fields.Summary,
+				m.width,
+				m.height,
+			)
+			m.currentView = ConfirmView
+			return m, m.confirmView.Init()
+		}
+
+		// Workflow (w) - only in detail view
+		if key.Matches(msg, m.keys.Workflow) && m.currentView == IssueDetailView && m.detailView != nil {
+			m.workflowView = NewWorkflowModel(
+				m.cfg,
+				m.detailView.issue,
+				m.detailView.proformaForms,
+				m.detailView.comments,
+				m.keys,
+				m.width,
+				m.height,
+			)
+			m.currentView = WorkflowView
+			return m, nil
 		}
 
 	case errorMsg:
@@ -79,26 +212,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case queueSelectedMsg:
-		// Navigate to issue list
 		m.issuesView = NewIssuesModel(m.client, m.cfg.Project, msg.queue, m.keys, m.cfg.Username, m.width, m.height)
 		m.currentView = IssueListView
 		return m, m.issuesView.Init()
 
 	case issueSelectedMsg:
-		// Navigate to issue detail
-		m.detailView = NewDetailModel(m.client, msg.issue, m.keys)
+		m.detailView = NewDetailModel(m.client, msg.issue, m.keys, m.width, m.height)
 		m.currentView = IssueDetailView
 		return m, m.detailView.Init()
 
 	case backToQueuesMsg:
 		m.currentView = QueueListView
 		m.issuesView = nil
-		return m, nil
+		return m, m.queuesView.Refresh()
 
 	case backToIssuesMsg:
 		m.currentView = IssueListView
 		m.detailView = nil
-		return m, nil
+		return m, m.issuesView.Refresh()
 
 	case openTransitionMsg:
 		m.transitionView = NewTransitionModel(m.client, msg.issue, m.keys)
@@ -114,7 +245,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentView = IssueDetailView
 		m.transitionView = nil
 		m.commentView = nil
-		// Refresh the detail view
 		return m, m.detailView.Refresh()
 
 	case transitionCompletedMsg:
@@ -136,6 +266,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentView = IssueDetailView
 		m.assignView = nil
 		return m, m.detailView.Refresh()
+
+	case renameCompletedMsg:
+		m.currentView = IssueDetailView
+		return m, m.detailView.Refresh()
+
+	case workflowCompletedMsg:
+		m.currentView = IssueDetailView
+		m.workflowView = nil
+		return m, nil
 	}
 
 	// Route to current view
@@ -153,9 +292,56 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.commentView, cmd = m.commentView.Update(msg)
 	case AssignView:
 		m.assignView, cmd = m.assignView.Update(msg)
+	case WorkflowView:
+		m.workflowView, cmd = m.workflowView.Update(msg)
 	}
 
 	return m, cmd
+}
+
+// handleConfirmResult handles results from confirmation modals
+func (m *Model) handleConfirmResult(result ConfirmResult) (tea.Model, tea.Cmd) {
+	m.currentView = m.prevView
+	m.confirmView = nil
+
+	if !result.Confirmed {
+		return m, nil
+	}
+
+	switch result.ID {
+	case "rename":
+		if result.Input != "" && m.detailView != nil {
+			return m, m.renameIssue(m.detailView.issue.Key, result.Input)
+		}
+	}
+
+	return m, nil
+}
+
+// renameIssue renames the current issue
+func (m *Model) renameIssue(issueKey, newSummary string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.client.UpdateIssueSummary(issueKey, newSummary)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return renameCompletedMsg{}
+	}
+}
+
+// applySearch applies search filter to the current view
+func (m *Model) applySearch(query string) tea.Cmd {
+	switch m.currentView {
+	case IssueListView:
+		if m.issuesView != nil {
+			m.issuesView.SetSearchFilter(query)
+		}
+	case IssueDetailView:
+		if m.detailView != nil {
+			m.detailView.SetSearchFilter(query)
+		}
+	}
+	return nil
 }
 
 // View renders the current view
@@ -164,22 +350,44 @@ func (m Model) View() string {
 		return ErrorStyle.Render(fmt.Sprintf("Error: %v", m.err))
 	}
 
+	var content string
+
 	switch m.currentView {
 	case QueueListView:
-		return m.queuesView.View()
+		content = m.queuesView.View()
 	case IssueListView:
-		return m.issuesView.View()
+		content = m.issuesView.View()
 	case IssueDetailView:
-		return m.detailView.View()
+		content = m.detailView.View()
 	case TransitionView:
-		return m.transitionView.View()
+		content = m.transitionView.View()
 	case CommentView:
-		return m.commentView.View()
+		content = m.commentView.View()
 	case AssignView:
-		return m.assignView.View()
+		content = m.assignView.View()
+	case ConfirmView:
+		content = m.confirmView.View()
+	case HelpView:
+		content = m.helpView.View()
+	case WorkflowView:
+		content = m.workflowView.View()
+	default:
+		content = "Unknown view"
 	}
 
-	return "Unknown view"
+	// Add command bar and hints at bottom if visible
+	if m.cmdBar.IsVisible() {
+		// Get hints based on mode
+		var hints string
+		if m.cmdBar.Mode() == CmdBarShowSearch {
+			hints = "enter/esc clear search"
+		} else {
+			hints = "enter submit • esc cancel"
+		}
+		content = lipgloss.JoinVertical(lipgloss.Left, content, m.cmdBar.ViewWithHints(hints))
+	}
+
+	return content
 }
 
 // Custom messages for navigation
@@ -194,3 +402,4 @@ type backToDetailMsg struct{}
 type transitionCompletedMsg struct{}
 type commentAddedMsg struct{}
 type openAssignMsg struct{ issue jira.Issue }
+type renameCompletedMsg struct{}

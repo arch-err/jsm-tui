@@ -10,11 +10,62 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	URL      string       `yaml:"url"`
-	Auth     Auth         `yaml:"auth"`
-	Project  string       `yaml:"project"`
-	Username string       `yaml:"username,omitempty"` // Display name to identify "me"
-	Queues   QueuesConfig `yaml:"queues,omitempty"`
+	URL       string           `yaml:"url"`
+	Auth      Auth             `yaml:"auth"`
+	Project   string           `yaml:"project"`
+	Username  string           `yaml:"username,omitempty"` // Display name to identify "me"
+	Queues    QueuesConfig     `yaml:"queues,omitempty"`
+	Workflows []WorkflowConfig `yaml:"workflows,omitempty"`
+}
+
+// WorkflowConfig defines a workflow automation
+type WorkflowConfig struct {
+	Name         string           `yaml:"name"`
+	Script       string           `yaml:"script"`
+	RequestTypes RequestTypeMatch `yaml:"request_types"`
+}
+
+// RequestTypeMatch can be "any" or a list of request type names
+type RequestTypeMatch struct {
+	Any   bool
+	Types []string
+}
+
+// UnmarshalYAML handles both "any" string and array of strings
+func (r *RequestTypeMatch) UnmarshalYAML(value *yaml.Node) error {
+	// Try as string first
+	var s string
+	if err := value.Decode(&s); err == nil {
+		if s == "any" {
+			r.Any = true
+			return nil
+		}
+		// Single type as string
+		r.Types = []string{s}
+		return nil
+	}
+
+	// Try as array
+	var arr []string
+	if err := value.Decode(&arr); err == nil {
+		r.Types = arr
+		return nil
+	}
+
+	return fmt.Errorf("request_types must be 'any' or an array of strings")
+}
+
+// Matches checks if a request type matches this config
+func (r *RequestTypeMatch) Matches(requestType string) bool {
+	if r.Any {
+		return true
+	}
+	for _, t := range r.Types {
+		if t == requestType {
+			return true
+		}
+	}
+	return false
 }
 
 // QueuesConfig contains queue display settings
@@ -92,6 +143,24 @@ func (c *Config) Save() error {
 	}
 
 	return nil
+}
+
+// GetWorkflowsDir returns the path to the workflows directory
+func GetWorkflowsDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	return filepath.Join(homeDir, ".config", "jsm-tui", "workflows"), nil
+}
+
+// GetWorkflowScriptPath returns the full path to a workflow script
+func GetWorkflowScriptPath(scriptName string) (string, error) {
+	dir, err := GetWorkflowsDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, scriptName), nil
 }
 
 // ToggleFavoriteQueue adds or removes a queue from favorites

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/arch-err/jsm-tui/internal/jira"
@@ -11,19 +12,21 @@ import (
 
 // IssuesModel handles the issue list view
 type IssuesModel struct {
-	client        *jira.Client
-	projectKey    string
-	queue         jira.Queue
-	keys          KeyMap
-	issues        []jira.Issue
-	selectedIndex int
-	scrollOffset  int
-	loading       bool
-	err           error
-	width         int
-	height        int
-	currentUser   string
-	lastGPress    time.Time
+	client         *jira.Client
+	projectKey     string
+	queue          jira.Queue
+	keys           KeyMap
+	issues         []jira.Issue
+	filteredIssues []jira.Issue
+	searchFilter   string
+	selectedIndex  int
+	scrollOffset   int
+	loading        bool
+	err            error
+	width          int
+	height         int
+	currentUser    string
+	lastGPress     time.Time
 }
 
 // NewIssuesModel creates a new issue list model
@@ -47,6 +50,45 @@ func (m *IssuesModel) Init() tea.Cmd {
 	return m.fetchIssues()
 }
 
+// Refresh reloads the issues
+func (m *IssuesModel) Refresh() tea.Cmd {
+	m.loading = true
+	return m.fetchIssues()
+}
+
+// SetSearchFilter sets the search filter and updates filtered issues
+func (m *IssuesModel) SetSearchFilter(query string) {
+	m.searchFilter = query
+	m.updateFilteredIssues()
+	m.selectedIndex = 0
+	m.scrollOffset = 0
+}
+
+// updateFilteredIssues filters issues by summary
+func (m *IssuesModel) updateFilteredIssues() {
+	if m.searchFilter == "" {
+		m.filteredIssues = m.issues
+		return
+	}
+
+	query := strings.ToLower(m.searchFilter)
+	m.filteredIssues = nil
+	for _, issue := range m.issues {
+		if strings.Contains(strings.ToLower(issue.Fields.Summary), query) ||
+			strings.Contains(strings.ToLower(issue.Key), query) {
+			m.filteredIssues = append(m.filteredIssues, issue)
+		}
+	}
+}
+
+// getDisplayIssues returns the issues to display (filtered or all)
+func (m *IssuesModel) getDisplayIssues() []jira.Issue {
+	if m.searchFilter != "" {
+		return m.filteredIssues
+	}
+	return m.issues
+}
+
 // fetchIssues loads issues from the API
 func (m *IssuesModel) fetchIssues() tea.Cmd {
 	return func() tea.Msg {
@@ -68,6 +110,7 @@ func (m *IssuesModel) Update(msg tea.Msg) (*IssuesModel, tea.Cmd) {
 
 	case issuesLoadedMsg:
 		m.issues = msg.issues
+		m.updateFilteredIssues()
 		m.loading = false
 		return m, nil
 
@@ -85,16 +128,18 @@ func (m *IssuesModel) Update(msg tea.Msg) (*IssuesModel, tea.Cmd) {
 			return m, nil
 
 		case key.Matches(msg, m.keys.Down):
-			if m.selectedIndex < len(m.issues)-1 {
+			issues := m.getDisplayIssues()
+			if m.selectedIndex < len(issues)-1 {
 				m.selectedIndex++
 				m.adjustScroll()
 			}
 			return m, nil
 
 		case key.Matches(msg, m.keys.Enter):
-			if len(m.issues) > 0 {
+			issues := m.getDisplayIssues()
+			if len(issues) > 0 {
 				return m, func() tea.Msg {
-					return issueSelectedMsg{issue: m.issues[m.selectedIndex]}
+					return issueSelectedMsg{issue: issues[m.selectedIndex]}
 				}
 			}
 			return m, nil
@@ -110,8 +155,9 @@ func (m *IssuesModel) Update(msg tea.Msg) (*IssuesModel, tea.Cmd) {
 
 		case key.Matches(msg, m.keys.GoToBottom):
 			// G - go to bottom
-			if len(m.issues) > 0 {
-				m.selectedIndex = len(m.issues) - 1
+			issues := m.getDisplayIssues()
+			if len(issues) > 0 {
+				m.selectedIndex = len(issues) - 1
 				m.adjustScroll()
 			}
 			return m, nil
@@ -169,7 +215,11 @@ func (m *IssuesModel) View() string {
 		return ErrorStyle.Render(fmt.Sprintf("Error: %v", m.err))
 	}
 
-	if len(m.issues) == 0 {
+	issues := m.getDisplayIssues()
+	if len(issues) == 0 {
+		if m.searchFilter != "" {
+			return fmt.Sprintf("No issues matching '%s' in queue: %s", m.searchFilter, m.queue.Name)
+		}
 		return fmt.Sprintf("No issues in queue: %s", m.queue.Name)
 	}
 
@@ -196,7 +246,7 @@ func (m *IssuesModel) View() string {
 		summaryWidth = 20 // minimum width
 	}
 
-	s := HeaderStyle.Render(fmt.Sprintf("Issues - %s > %s", m.projectKey, m.queue.Name)) + "\n\n"
+	s := HeaderStyle.Width(availableWidth).Render(fmt.Sprintf("Issues - %s > %s", m.projectKey, m.queue.Name)) + "\n\n"
 
 	// Table header
 	var headerFormat string
@@ -212,8 +262,8 @@ func (m *IssuesModel) View() string {
 	visible := m.visibleRows()
 	startIdx := m.scrollOffset
 	endIdx := m.scrollOffset + visible
-	if endIdx > len(m.issues) {
-		endIdx = len(m.issues)
+	if endIdx > len(issues) {
+		endIdx = len(issues)
 	}
 
 	// Show scroll indicator if there are items above
@@ -222,7 +272,7 @@ func (m *IssuesModel) View() string {
 	}
 
 	for i := startIdx; i < endIdx; i++ {
-		issue := m.issues[i]
+		issue := issues[i]
 		assignee := "Unassigned"
 		if issue.Fields.Assignee != nil {
 			assignee = issue.Fields.Assignee.DisplayName
@@ -293,12 +343,12 @@ func (m *IssuesModel) View() string {
 	}
 
 	// Show scroll indicator if there are items below
-	remaining := len(m.issues) - endIdx
+	remaining := len(issues) - endIdx
 	if remaining > 0 {
 		s += HelpStyle.Render(fmt.Sprintf("  ↓ %d more below", remaining)) + "\n"
 	}
 
-	s += "\n" + HelpStyle.Render("↑↓/jk navigate • enter open • esc back • r refresh")
+	s += "\n" + HelpStyle.Render("? help • enter open • esc back")
 
 	return s
 }

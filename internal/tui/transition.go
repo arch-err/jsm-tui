@@ -155,7 +155,7 @@ func (m *TransitionModel) View() string {
 		s += line + "\n"
 	}
 
-	s += "\n" + HelpStyle.Render("↑↓/jk navigate • enter execute • esc cancel")
+	s += "\n" + HelpStyle.Render("enter execute • esc cancel")
 
 	return s
 }
