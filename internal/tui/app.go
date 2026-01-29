@@ -23,7 +23,13 @@ const (
 	ConfirmView
 	HelpView
 	WorkflowView
+	ActionView
 )
+
+// ModelOptions contains optional configuration for the Model
+type ModelOptions struct {
+	InitialIssueKey string // If set, open directly to this issue
+}
 
 // Model is the root application model
 type Model struct {
@@ -46,32 +52,73 @@ type Model struct {
 	confirmView    *ConfirmModel
 	helpView       *HelpModel
 	workflowView   *WorkflowModel
+	actionView     *ActionModel
 
 	// Command bar
 	cmdBar *CmdBarModel
 
 	// ZZ quit tracking
 	waitingForZ bool
+
+	// Pending action data
+	pendingRename string
+
+	// Initial issue to load (from CLI)
+	initialIssueKey string
+
+	// Current user info (fetched from Jira)
+	currentUsername string
 }
 
 // NewModel creates a new application model
 func NewModel(cfg *config.Config) Model {
+	return NewModelWithOptions(cfg, ModelOptions{})
+}
+
+// NewModelWithOptions creates a new application model with options
+func NewModelWithOptions(cfg *config.Config, opts ModelOptions) Model {
 	client := jira.NewClient(cfg)
 	keys := DefaultKeyMap()
 
 	return Model{
-		cfg:         cfg,
-		client:      client,
-		keys:        keys,
-		currentView: QueueListView,
-		queuesView:  NewQueuesModel(client, cfg, cfg.Project, keys),
-		cmdBar:      NewCmdBarModel(80),
+		cfg:             cfg,
+		client:          client,
+		keys:            keys,
+		currentView:     QueueListView,
+		queuesView:      NewQueuesModel(client, cfg, cfg.Project, keys),
+		cmdBar:          NewCmdBarModel(80),
+		initialIssueKey: opts.InitialIssueKey,
 	}
 }
 
 // Init initializes the application
 func (m Model) Init() tea.Cmd {
-	return m.queuesView.Init()
+	// Fetch current user info
+	fetchUser := func() tea.Msg {
+		user, err := m.client.GetCurrentUser()
+		if err != nil {
+			// Fall back to config username if API fails
+			return currentUserLoadedMsg{user: jira.User{DisplayName: m.currentUsername}}
+		}
+		return currentUserLoadedMsg{user: *user}
+	}
+
+	// If we have an initial issue key, load that issue directly
+	if m.initialIssueKey != "" {
+		return tea.Batch(fetchUser, m.loadInitialIssue(m.initialIssueKey))
+	}
+	return tea.Batch(fetchUser, m.queuesView.Init())
+}
+
+// loadInitialIssue fetches and opens a specific issue
+func (m *Model) loadInitialIssue(issueKey string) tea.Cmd {
+	return func() tea.Msg {
+		issue, err := m.client.GetIssue(issueKey)
+		if err != nil {
+			return errorMsg{err: fmt.Errorf("failed to load issue %s: %w", issueKey, err)}
+		}
+		return initialIssueLoadedMsg{issue: *issue}
+	}
 }
 
 // Update handles messages
@@ -118,16 +165,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
+	// Handle confirm results FIRST (before routing to confirmView)
+	if result, ok := msg.(ConfirmResult); ok {
+		return m.handleConfirmResult(result)
+	}
+
 	// Handle confirm modal
 	if m.currentView == ConfirmView {
 		var cmd tea.Cmd
 		m.confirmView, cmd = m.confirmView.Update(msg)
 		return m, cmd
-	}
-
-	// Handle confirm results
-	if result, ok := msg.(ConfirmResult); ok {
-		return m.handleConfirmResult(result)
 	}
 
 	switch msg := msg.(type) {
@@ -152,13 +199,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-		// Command mode
-		if key.Matches(msg, m.keys.Command) {
+		// Check if we're in a modal view (don't allow command/search/help in modals)
+		inModal := m.currentView == AssignView || m.currentView == TransitionView ||
+			m.currentView == CommentView || m.currentView == ConfirmView ||
+			m.currentView == HelpView || m.currentView == WorkflowView ||
+			m.currentView == ActionView
+
+		// Command mode (not in modals)
+		if key.Matches(msg, m.keys.Command) && !inModal {
 			return m, m.cmdBar.Open(CmdBarCommand)
 		}
 
-		// Search mode
-		if key.Matches(msg, m.keys.Search) {
+		// Search mode (not in modals)
+		if key.Matches(msg, m.keys.Search) && !inModal {
 			return m, m.cmdBar.Open(CmdBarSearch)
 		}
 
@@ -168,8 +221,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.applySearch("")
 		}
 
-		// Help modal
-		if key.Matches(msg, m.keys.Help) {
+		// Help modal (not in modals)
+		if key.Matches(msg, m.keys.Help) && !inModal {
 			m.prevView = m.currentView
 			m.helpView = NewHelpModel(m.width, m.height)
 			m.currentView = HelpView
@@ -207,17 +260,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Quick Action (A) - only in detail view
+		if key.Matches(msg, m.keys.QuickAction) && m.currentView == IssueDetailView && m.detailView != nil {
+			m.actionView = NewActionModel(
+				m.client,
+				m.detailView.issue,
+				m.cfg.Actions,
+				m.keys,
+				m.width,
+				m.height,
+			)
+			m.currentView = ActionView
+			return m, nil
+		}
+
 	case errorMsg:
 		m.err = msg.err
 		return m, nil
 
+	case currentUserLoadedMsg:
+		m.currentUsername = msg.user.DisplayName
+		return m, nil
+
+	case browseIssueMsg:
+		// Open current issue in browser
+		if m.currentView == IssueDetailView && m.detailView != nil {
+			url := fmt.Sprintf("%s/browse/%s", m.cfg.URL, m.detailView.issue.Key)
+			OpenInBrowser(url)
+		}
+		return m, nil
+
 	case queueSelectedMsg:
-		m.issuesView = NewIssuesModel(m.client, m.cfg.Project, msg.queue, m.keys, m.cfg.Username, m.width, m.height)
+		m.issuesView = NewIssuesModel(m.client, m.cfg.Project, msg.queue, m.keys, m.currentUsername, m.width, m.height)
 		m.currentView = IssueListView
 		return m, m.issuesView.Init()
 
 	case issueSelectedMsg:
-		m.detailView = NewDetailModel(m.client, msg.issue, m.keys, m.width, m.height)
+		m.detailView = NewDetailModel(m.client, msg.issue, m.keys, m.width, m.height, m.currentUsername)
+		m.currentView = IssueDetailView
+		return m, m.detailView.Init()
+
+	case initialIssueLoadedMsg:
+		// Opened directly to an issue via CLI flag
+		m.detailView = NewDetailModel(m.client, msg.issue, m.keys, m.width, m.height, m.currentUsername)
 		m.currentView = IssueDetailView
 		return m, m.detailView.Init()
 
@@ -227,8 +312,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.queuesView.Refresh()
 
 	case backToIssuesMsg:
-		m.currentView = IssueListView
 		m.detailView = nil
+		// If opened directly to an issue (no issues view), go to queue list instead
+		if m.issuesView == nil {
+			m.currentView = QueueListView
+			return m, m.queuesView.Refresh()
+		}
+		m.currentView = IssueListView
 		return m, m.issuesView.Refresh()
 
 	case openTransitionMsg:
@@ -237,7 +327,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.transitionView.Init()
 
 	case openCommentMsg:
-		m.commentView = NewCommentModel(m.client, msg.issue, m.keys)
+		m.commentView = NewCommentModel(m.client, msg.issue, m.keys, m.width, m.height)
+		m.currentView = CommentView
+		return m, nil
+
+	case openEditCommentMsg:
+		m.commentView = NewEditCommentModel(m.client, msg.issue, m.keys, m.width, m.height, msg.commentID, msg.body)
 		m.currentView = CommentView
 		return m, nil
 
@@ -257,8 +352,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.commentView = nil
 		return m, m.detailView.Refresh()
 
+	case commentEditedMsg:
+		m.currentView = IssueDetailView
+		m.commentView = nil
+		return m, m.detailView.Refresh()
+
 	case openAssignMsg:
-		m.assignView = NewAssignModel(m.client, msg.issue, m.keys, m.cfg.Username, m.width, m.height)
+		m.assignView = NewAssignModel(m.client, msg.issue, m.keys, m.currentUsername, m.width, m.height)
 		m.currentView = AssignView
 		return m, m.assignView.Init()
 
@@ -275,6 +375,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentView = IssueDetailView
 		m.workflowView = nil
 		return m, nil
+
+	case actionCompletedMsg:
+		m.currentView = IssueDetailView
+		m.actionView = nil
+		return m, m.detailView.Refresh()
 	}
 
 	// Route to current view
@@ -294,6 +399,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.assignView, cmd = m.assignView.Update(msg)
 	case WorkflowView:
 		m.workflowView, cmd = m.workflowView.Update(msg)
+	case ActionView:
+		m.actionView, cmd = m.actionView.Update(msg)
 	}
 
 	return m, cmd
@@ -301,20 +408,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // handleConfirmResult handles results from confirmation modals
 func (m *Model) handleConfirmResult(result ConfirmResult) (tea.Model, tea.Cmd) {
-	m.currentView = m.prevView
-	m.confirmView = nil
-
 	if !result.Confirmed {
+		m.currentView = m.prevView
+		m.confirmView = nil
 		return m, nil
 	}
 
 	switch result.ID {
 	case "rename":
+		// First step: got the new name, now ask for confirmation
 		if result.Input != "" && m.detailView != nil {
-			return m, m.renameIssue(m.detailView.issue.Key, result.Input)
+			m.confirmView = NewConfirmModel(
+				"rename-confirm",
+				"Confirm Rename",
+				fmt.Sprintf("Rename issue %s to:\n\n\"%s\"?", m.detailView.issue.Key, result.Input),
+				m.width,
+				m.height,
+			)
+			// Store the new name temporarily
+			m.pendingRename = result.Input
+			m.currentView = ConfirmView
+			return m, nil
+		}
+
+	case "rename-confirm":
+		// Second step: confirmed, do the rename
+		m.currentView = m.prevView
+		m.confirmView = nil
+		if m.pendingRename != "" && m.detailView != nil {
+			newName := m.pendingRename
+			m.pendingRename = ""
+			return m, m.renameIssue(m.detailView.issue.Key, newName)
 		}
 	}
 
+	m.currentView = m.prevView
+	m.confirmView = nil
 	return m, nil
 }
 
@@ -371,6 +500,8 @@ func (m Model) View() string {
 		content = m.helpView.View()
 	case WorkflowView:
 		content = m.workflowView.View()
+	case ActionView:
+		content = m.actionView.View()
 	default:
 		content = "Unknown view"
 	}
@@ -392,14 +523,22 @@ func (m Model) View() string {
 
 // Custom messages for navigation
 type errorMsg struct{ err error }
+type currentUserLoadedMsg struct{ user jira.User }
 type queueSelectedMsg struct{ queue jira.Queue }
 type issueSelectedMsg struct{ issue jira.Issue }
+type initialIssueLoadedMsg struct{ issue jira.Issue }
 type backToQueuesMsg struct{}
 type backToIssuesMsg struct{}
 type openTransitionMsg struct{ issue jira.Issue }
 type openCommentMsg struct{ issue jira.Issue }
+type openEditCommentMsg struct {
+	issue     jira.Issue
+	commentID string
+	body      string
+}
 type backToDetailMsg struct{}
 type transitionCompletedMsg struct{}
 type commentAddedMsg struct{}
+type commentEditedMsg struct{}
 type openAssignMsg struct{ issue jira.Issue }
 type renameCompletedMsg struct{}

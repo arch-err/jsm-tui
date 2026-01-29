@@ -124,3 +124,12 @@ func (c *Client) Put(path string, body interface{}) error {
 
 	return nil
 }
+
+// GetCurrentUser fetches the currently authenticated user
+func (c *Client) GetCurrentUser() (*User, error) {
+	var user User
+	if err := c.Get("/rest/api/2/myself", &user); err != nil {
+		return nil, fmt.Errorf("failed to get current user: %w", err)
+	}
+	return &user, nil
+}

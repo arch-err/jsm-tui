@@ -1,0 +1,17 @@
+[Unit]
+Description=JSM Notify - Desktop notifications for new Jira issues
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/jsm-notify --queue "To Do" --interval 30s --verbose
+Restart=on-failure
+RestartSec=10
+
+# Run as your user (required for notify-send to work with your session)
+# For system-wide service, you'd need DBUS_SESSION_BUS_ADDRESS
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=default.target

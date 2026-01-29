@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -12,14 +13,22 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Regex patterns for mentions
+var (
+	mentionAccountIDRegex = regexp.MustCompile(`\[~accountId:([^\]]+)\]`)
+	mentionUsernameRegex  = regexp.MustCompile(`\[~([^\]:]+)\]`)
+)
+
 const sidebarWidth = 30
 
 // YankableField represents a field that can be copied
 type YankableField struct {
-	Label    string
-	Value    string
-	LineNum  int // Line number in viewport for scrolling
-	IsMatch  bool // True if this field matches the search
+	Label     string
+	Value     string
+	LineNum   int    // Line number in viewport for scrolling
+	IsMatch   bool   // True if this field matches the search
+	CommentID string // If this is a comment, the comment ID
+	IsMine    bool   // If this is my comment (can be edited)
 }
 
 // DetailModel handles the issue detail view
@@ -34,6 +43,7 @@ type DetailModel struct {
 	err           error
 	width         int
 	height        int
+	username      string // Current user's display name for identifying "my" comments
 
 	// Yank/copy support
 	yankableFields  []YankableField
@@ -46,20 +56,84 @@ type DetailModel struct {
 	searchFilter string
 
 	// Navigation
-	lastGPress time.Time // For gg detection
-	waitingForG bool     // For gx detection
+	lastGPress  time.Time // For gg detection
+	waitingForG bool      // For gx detection
+
+	// User cache for resolving mentions
+	userCache map[string]string // accountId/username -> displayName
 }
 
 // NewDetailModel creates a new issue detail model
-func NewDetailModel(client *jira.Client, issue jira.Issue, keys KeyMap, width, height int) *DetailModel {
+func NewDetailModel(client *jira.Client, issue jira.Issue, keys KeyMap, width, height int, username string) *DetailModel {
 	return &DetailModel{
-		client:  client,
-		keys:    keys,
-		issue:   issue,
-		loading: true,
-		width:   width,
-		height:  height,
+		client:    client,
+		keys:      keys,
+		issue:     issue,
+		loading:   true,
+		width:     width,
+		height:    height,
+		username:  username,
+		userCache: make(map[string]string),
 	}
+}
+
+// resolveMentions replaces [~accountId:xxx] and [~username] with display names
+func (m *DetailModel) resolveMentions(text string) string {
+	// Replace [~accountId:xxx] format
+	result := mentionAccountIDRegex.ReplaceAllStringFunc(text, func(match string) string {
+		// Extract accountId
+		submatch := mentionAccountIDRegex.FindStringSubmatch(match)
+		if len(submatch) < 2 {
+			return match
+		}
+		accountID := submatch[1]
+
+		// Check cache first
+		if name, ok := m.userCache[accountID]; ok {
+			return name
+		}
+
+		// Try to look up user
+		user, err := m.client.GetUserByAccountID(accountID)
+		if err == nil && user != nil {
+			m.userCache[accountID] = user.DisplayName
+			return user.DisplayName
+		}
+
+		return match
+	})
+
+	// Replace [~username] format (but not [~accountId:xxx] which we already handled)
+	result = mentionUsernameRegex.ReplaceAllStringFunc(result, func(match string) string {
+		// Skip if it's an accountId format
+		if strings.Contains(match, "accountId:") {
+			return match
+		}
+
+		// Extract username
+		submatch := mentionUsernameRegex.FindStringSubmatch(match)
+		if len(submatch) < 2 {
+			return match
+		}
+		username := submatch[1]
+
+		// Check cache first
+		if name, ok := m.userCache[username]; ok {
+			return name
+		}
+
+		// Try to look up user
+		user, err := m.client.GetUserByUsername(username)
+		if err == nil && user != nil {
+			m.userCache[username] = user.DisplayName
+			return user.DisplayName
+		}
+
+		// If lookup fails, just show username
+		return username
+	})
+
+	return result
 }
 
 type issueDetailLoadedMsg struct {
@@ -198,6 +272,22 @@ func (m *DetailModel) Update(msg tea.Msg) (*DetailModel, tea.Cmd) {
 				return openCommentMsg{issue: m.issue}
 			}
 
+		case key.Matches(msg, m.keys.EditComment):
+			// Edit comment - only works if a comment is selected and it's mine
+			if m.selectedField >= 0 && m.selectedField < len(m.yankableFields) {
+				field := m.yankableFields[m.selectedField]
+				if field.CommentID != "" && field.IsMine {
+					return m, func() tea.Msg {
+						return openEditCommentMsg{
+							issue:     m.issue,
+							commentID: field.CommentID,
+							body:      field.Value,
+						}
+					}
+				}
+			}
+			return m, nil
+
 		case key.Matches(msg, m.keys.Assign):
 			return m, func() tea.Msg {
 				return openAssignMsg{issue: m.issue}
@@ -206,25 +296,19 @@ func (m *DetailModel) Update(msg tea.Msg) (*DetailModel, tea.Cmd) {
 		case key.Matches(msg, m.keys.Refresh):
 			return m, m.Refresh()
 
-		// Field selection with j/k (vim style)
+		// Field selection with j/k (vim style) - no wrapping
 		case key.Matches(msg, m.keys.Down):
 			m.waitingForG = false
-			if len(m.yankableFields) > 0 {
+			if len(m.yankableFields) > 0 && m.selectedField < len(m.yankableFields)-1 {
 				m.selectedField++
-				if m.selectedField >= len(m.yankableFields) {
-					m.selectedField = 0
-				}
 				m.scrollToSelected()
 			}
 			return m, nil
 
 		case key.Matches(msg, m.keys.Up):
 			m.waitingForG = false
-			if len(m.yankableFields) > 0 {
+			if len(m.yankableFields) > 0 && m.selectedField > 0 {
 				m.selectedField--
-				if m.selectedField < 0 {
-					m.selectedField = len(m.yankableFields) - 1
-				}
 				m.scrollToSelected()
 			}
 			return m, nil
@@ -262,7 +346,6 @@ func (m *DetailModel) Update(msg tea.Msg) (*DetailModel, tea.Cmd) {
 				m.waitingForG = false
 				m.selectedField = 0
 				m.viewport.GotoTop()
-				m.updateViewport()
 				return m, nil
 			}
 			m.waitingForG = true
@@ -325,10 +408,13 @@ func (m *DetailModel) buildYankableFields() {
 
 	// Add comments
 	for _, comment := range m.comments {
+		isMine := comment.Author.DisplayName == m.username
 		m.yankableFields = append(m.yankableFields, YankableField{
-			Label:   fmt.Sprintf("Comment by %s", comment.Author.DisplayName),
-			Value:   comment.Body,
-			IsMatch: matchesSearch(comment.Body),
+			Label:     fmt.Sprintf("Comment by %s", comment.Author.DisplayName),
+			Value:     comment.Body,
+			IsMatch:   matchesSearch(comment.Body),
+			CommentID: comment.ID,
+			IsMine:    isMine,
 		})
 	}
 
@@ -474,19 +560,34 @@ func isURLTerminator(c byte) bool {
 func (m *DetailModel) updateViewport() {
 	headerHeight := 4 // header + status line
 	helpHeight := 2   // help text at bottom
-	mainContentWidth := m.width - sidebarWidth - 3 // 3 for borders/padding
+	mainContentWidth := m.width - sidebarWidth - 11 // borders (2) + padding (8) + margin (1)
 
 	if mainContentWidth < 40 {
 		mainContentWidth = 40
 	}
 
-	contentHeight := m.height - headerHeight - helpHeight
+	contentHeight := m.height - headerHeight - helpHeight - 2 // -2 for vertical padding
 	if contentHeight < 10 {
 		contentHeight = 10
 	}
 
+	// Preserve scroll position when updating
+	currentOffset := m.viewport.YOffset
+
 	m.viewport = viewport.New(mainContentWidth, contentHeight)
 	m.viewport.SetContent(m.renderMainContent(mainContentWidth))
+
+	// Restore scroll position (clamped to valid range)
+	if currentOffset > 0 {
+		maxOffset := m.viewport.TotalLineCount() - m.viewport.Height
+		if maxOffset < 0 {
+			maxOffset = 0
+		}
+		if currentOffset > maxOffset {
+			currentOffset = maxOffset
+		}
+		m.viewport.SetYOffset(currentOffset)
+	}
 }
 
 // renderHeader renders the top header with issue key, summary, status, and request type
@@ -656,12 +757,12 @@ func (m *DetailModel) renderMainContent(width int) string {
 		return text
 	}
 
-	// Description
-	sb.WriteString(TitleStyle.Render("Description") + "\n")
-	lineNum++
-	sb.WriteString(strings.Repeat("─", width-2) + "\n")
-	lineNum++
+	// Description - only show if not empty
 	if m.issue.Fields.Description != "" {
+		sb.WriteString(TitleStyle.Render("Description") + "\n")
+		lineNum++
+		sb.WriteString(strings.Repeat("─", width-2) + "\n")
+		lineNum++
 		// Update line number for this field
 		if fieldIndex < len(m.yankableFields) {
 			m.yankableFields[fieldIndex].LineNum = lineNum
@@ -671,37 +772,74 @@ func (m *DetailModel) renderMainContent(width int) string {
 		sb.WriteString(renderField(descText, m.selectedField == fieldIndex, isMatch) + "\n")
 		lineNum += strings.Count(descText, "\n") + 1
 		fieldIndex++
-	} else {
-		sb.WriteString(HelpStyle.Render("No description provided.") + "\n")
+		sb.WriteString("\n")
 		lineNum++
 	}
-	sb.WriteString("\n")
-	lineNum++
 
 	// Proforma Forms
 	for _, form := range m.proformaForms {
+		// Check if form has any non-empty fields
+		hasContent := false
+		for _, field := range form.Fields {
+			if field.Answer != "" && field.Answer != "-" {
+				hasContent = true
+				break
+			}
+		}
+		if !hasContent {
+			continue
+		}
+
 		sb.WriteString(TitleStyle.Render(fmt.Sprintf("Form: %s", form.Name)) + "\n")
 		lineNum++
 		sb.WriteString(strings.Repeat("─", width-2) + "\n")
 		lineNum++
+
+		labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+
 		for _, field := range form.Fields {
-			sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(field.Label) + "\n")
+			// Skip fields without answers
+			if field.Answer == "" || field.Answer == "-" {
+				continue
+			}
+
+			// Update line number for this field
+			if fieldIndex < len(m.yankableFields) {
+				m.yankableFields[fieldIndex].LineNum = lineNum
+			}
+
+			// Clean up label - remove trailing colons/spaces to avoid double colons
+			label := strings.TrimRight(field.Label, ": ")
+			labelWithColon := label + ": "
+			labelWidth := lipgloss.Width(labelWithColon) // Visual width for proper alignment
+
+			// Calculate answer width
+			answerWidth := width - 2 - labelWidth
+			if answerWidth < 20 {
+				answerWidth = 20
+			}
+
+			answerText := wrapText(field.Answer, answerWidth)
+			answerLines := strings.Split(answerText, "\n")
+
+			isMatch := fieldIndex < len(m.yankableFields) && m.yankableFields[fieldIndex].IsMatch
+
+			// First line: "Label: first line of answer"
+			labelText := labelStyle.Render(labelWithColon)
+			firstLine := labelText + renderField(answerLines[0], m.selectedField == fieldIndex, isMatch)
+			sb.WriteString(firstLine + "\n")
 			lineNum++
 
-			answerText := wrapText(field.Answer, width-2)
-			if field.Answer != "" && field.Answer != "-" {
-				// Update line number for this field
-				if fieldIndex < len(m.yankableFields) {
-					m.yankableFields[fieldIndex].LineNum = lineNum
-				}
-				isMatch := fieldIndex < len(m.yankableFields) && m.yankableFields[fieldIndex].IsMatch
-				sb.WriteString(renderField(answerText, m.selectedField == fieldIndex, isMatch) + "\n\n")
-				lineNum += strings.Count(answerText, "\n") + 2
-				fieldIndex++
-			} else {
-				sb.WriteString(answerText + "\n\n")
-				lineNum += strings.Count(answerText, "\n") + 2
+			// Subsequent lines: indented to align with answer
+			indent := strings.Repeat(" ", labelWidth)
+			for i := 1; i < len(answerLines); i++ {
+				sb.WriteString(indent + renderField(answerLines[i], m.selectedField == fieldIndex, isMatch) + "\n")
+				lineNum++
 			}
+
+			sb.WriteString("\n")
+			lineNum++
+			fieldIndex++
 		}
 	}
 
@@ -715,18 +853,31 @@ func (m *DetailModel) renderMainContent(width int) string {
 		sb.WriteString(HelpStyle.Render("No comments yet.") + "\n")
 	} else {
 		for _, comment := range m.comments {
-			authorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Bold(true)
+			// Different color for own comments vs others
+			isMine := comment.Author.DisplayName == m.username
+			var authorStyle lipgloss.Style
+			if isMine {
+				// Slightly different color for own comments (cyan/teal)
+				authorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("43")).Bold(true)
+			} else {
+				// Normal color for others (blue)
+				authorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Bold(true)
+			}
 			dateStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+			internalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Italic(true)
 
 			sb.WriteString(authorStyle.Render(comment.Author.DisplayName))
-			sb.WriteString(dateStyle.Render(" • "+formatDate(comment.Created)) + "\n")
+			if comment.IsInternal() {
+				sb.WriteString(" " + internalStyle.Render("[Internal]"))
+			}
+			sb.WriteString(dateStyle.Render(" • "+formatDate(comment.GetCreated())) + "\n")
 			lineNum++
 
 			// Update line number for this comment field
 			if fieldIndex < len(m.yankableFields) {
 				m.yankableFields[fieldIndex].LineNum = lineNum
 			}
-			commentText := wrapText(comment.Body, width-2)
+			commentText := wrapText(m.resolveMentions(comment.Body), width-2)
 			isMatch := fieldIndex < len(m.yankableFields) && m.yankableFields[fieldIndex].IsMatch
 			sb.WriteString(renderField(commentText, m.selectedField == fieldIndex, isMatch) + "\n\n")
 			lineNum += strings.Count(commentText, "\n") + 2
@@ -765,7 +916,8 @@ func (m *DetailModel) View() string {
 	mainContent := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("241")).
-		Width(m.width - sidebarWidth - 2).
+		Padding(1, 4). // Add padding inside the box (top/bottom, left/right)
+		Width(m.width - sidebarWidth - 4).
 		Height(contentHeight).
 		Render(m.viewport.View())
 
@@ -799,10 +951,74 @@ func truncate(s string, maxLen int) string {
 
 func formatDate(dateStr string) string {
 	// Input format: 2026-01-28T15:24:12.490+0100
-	if len(dateStr) >= 16 {
-		return dateStr[:10] + " " + dateStr[11:16]
+	if len(dateStr) < 19 {
+		return dateStr
 	}
-	return dateStr
+
+	// Try parsing with various formats (Jira can return different formats)
+	var t time.Time
+	var err error
+
+	formats := []string{
+		"2006-01-02T15:04:05.000-0700",
+		"2006-01-02T15:04:05.000Z",
+		"2006-01-02T15:04:05-0700",
+		"2006-01-02T15:04:05Z",
+		"2006-01-02T15:04:05",
+	}
+
+	for _, format := range formats {
+		t, err = time.Parse(format, dateStr)
+		if err == nil {
+			break
+		}
+		// Try with truncated string for formats without timezone
+		if len(dateStr) >= 19 {
+			t, err = time.Parse(format, dateStr[:19])
+			if err == nil {
+				break
+			}
+		}
+	}
+
+	if err != nil {
+		// Fallback to simple format
+		if len(dateStr) >= 10 {
+			return dateStr[:10]
+		}
+		return dateStr
+	}
+
+	now := time.Now()
+	diff := now.Sub(t)
+
+	// If less than a week ago, show relative time
+	if diff >= 0 && diff < 7*24*time.Hour {
+		if diff < time.Minute {
+			return "just now"
+		} else if diff < time.Hour {
+			mins := int(diff.Minutes())
+			if mins == 1 {
+				return "1 minute ago"
+			}
+			return fmt.Sprintf("%d minutes ago", mins)
+		} else if diff < 24*time.Hour {
+			hours := int(diff.Hours())
+			if hours == 1 {
+				return "1 hour ago"
+			}
+			return fmt.Sprintf("%d hours ago", hours)
+		} else {
+			days := int(diff.Hours() / 24)
+			if days == 1 {
+				return "1 day ago"
+			}
+			return fmt.Sprintf("%d days ago", days)
+		}
+	}
+
+	// Otherwise show the date
+	return t.Local().Format("2006-01-02")
 }
 
 func wrapText(text string, width int) string {

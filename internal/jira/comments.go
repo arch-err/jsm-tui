@@ -1,17 +1,76 @@
 package jira
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
+
+// DateField can be either a string (Jira API) or an object with iso8601 (Service Desk API)
+type DateField struct {
+	ISO8601 string `json:"iso8601,omitempty"`
+	Raw     string `json:"-"` // For direct string value
+}
+
+// UnmarshalJSON handles both string and object date formats
+func (d *DateField) UnmarshalJSON(data []byte) error {
+	// Try as string first
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		d.Raw = s
+		return nil
+	}
+
+	// Try as object with iso8601
+	var obj struct {
+		ISO8601 string `json:"iso8601"`
+	}
+	if err := json.Unmarshal(data, &obj); err == nil {
+		d.ISO8601 = obj.ISO8601
+		return nil
+	}
+
+	return nil
+}
+
+// String returns the date as a string
+func (d DateField) String() string {
+	if d.Raw != "" {
+		return d.Raw
+	}
+	return d.ISO8601
+}
 
 // Comment represents a comment on an issue
 type Comment struct {
-	ID      string `json:"id"`
-	Author  User   `json:"author"`
-	Body    string `json:"body"`
-	Created string `json:"created"`
-	Updated string `json:"updated"`
+	ID           string        `json:"id"`
+	Author       User          `json:"author"`
+	Body         string        `json:"body"`
+	Created      DateField     `json:"created"`
+	Updated      DateField     `json:"updated"`
+	Public       *bool         `json:"public,omitempty"`    // Service Desk API: true = public, false = internal
+	JsdPublic    *bool         `json:"jsdPublic,omitempty"` // Jira API fallback
+	RenderedBody string        `json:"renderedBody,omitempty"`
 }
 
-// CommentsResponse represents the response from comments API
+// GetCreated returns the created date as a string
+func (c *Comment) GetCreated() string {
+	return c.Created.String()
+}
+
+// IsInternal returns true if this is an internal comment (not visible to customers)
+func (c *Comment) IsInternal() bool {
+	// Service Desk API uses "public" field
+	if c.Public != nil {
+		return !*c.Public
+	}
+	// Jira API fallback uses "jsdPublic" field
+	if c.JsdPublic != nil {
+		return !*c.JsdPublic
+	}
+	return false
+}
+
+// CommentsResponse represents the response from regular Jira comments API
 type CommentsResponse struct {
 	StartAt    int       `json:"startAt"`
 	MaxResults int       `json:"maxResults"`
@@ -19,14 +78,44 @@ type CommentsResponse struct {
 	Comments   []Comment `json:"comments"`
 }
 
-// AddCommentRequest represents a request to add a comment
-type AddCommentRequest struct {
-	Body string `json:"body"`
+// ServiceDeskCommentsResponse represents the response from Service Desk API
+type ServiceDeskCommentsResponse struct {
+	Size       int       `json:"size"`
+	Start      int       `json:"start"`
+	Limit      int       `json:"limit"`
+	IsLastPage bool      `json:"isLastPage"`
+	Values     []Comment `json:"values"`
 }
 
-// GetComments fetches all comments for an issue
+// CommentProperty represents a comment property for JSM
+type CommentProperty struct {
+	Key   string                 `json:"key"`
+	Value map[string]interface{} `json:"value"`
+}
+
+// AddCommentRequest represents a request to add a comment
+type AddCommentRequest struct {
+	Body       string            `json:"body"`
+	Properties []CommentProperty `json:"properties,omitempty"`
+}
+
+// GetComments fetches all comments for an issue using Service Desk API
 func (c *Client) GetComments(issueKey string) ([]Comment, error) {
-	path := fmt.Sprintf("/rest/api/2/issue/%s/comment", issueKey)
+	// Use Service Desk API to get public/internal flag
+	path := fmt.Sprintf("/rest/servicedeskapi/request/%s/comment?public=true&internal=true", issueKey)
+
+	var resp ServiceDeskCommentsResponse
+	if err := c.Get(path, &resp); err != nil {
+		// Fallback to regular Jira API if Service Desk API fails
+		return c.getCommentsJiraAPI(issueKey)
+	}
+
+	return resp.Values, nil
+}
+
+// getCommentsJiraAPI fetches comments using regular Jira API (fallback)
+func (c *Client) getCommentsJiraAPI(issueKey string) ([]Comment, error) {
+	path := fmt.Sprintf("/rest/api/2/issue/%s/comment?expand=properties,renderedBody", issueKey)
 
 	var resp CommentsResponse
 	if err := c.Get(path, &resp); err != nil {
@@ -36,15 +125,46 @@ func (c *Client) GetComments(issueKey string) ([]Comment, error) {
 	return resp.Comments, nil
 }
 
-// AddComment adds a comment to an issue
+// AddComment adds a public comment to an issue (visible to customers)
 func (c *Client) AddComment(issueKey, body string) error {
+	return c.addCommentWithVisibility(issueKey, body, false)
+}
+
+// AddInternalComment adds an internal comment to an issue (hidden from customers)
+func (c *Client) AddInternalComment(issueKey, body string) error {
+	return c.addCommentWithVisibility(issueKey, body, true)
+}
+
+// addCommentWithVisibility adds a comment with specified visibility
+func (c *Client) addCommentWithVisibility(issueKey, body string, internal bool) error {
 	path := fmt.Sprintf("/rest/api/2/issue/%s/comment", issueKey)
 
-	req := AddCommentRequest{Body: body}
+	req := AddCommentRequest{
+		Body: body,
+		Properties: []CommentProperty{
+			{
+				Key:   "sd.public.comment",
+				Value: map[string]interface{}{"internal": internal},
+			},
+		},
+	}
 
 	var result Comment
 	if err := c.Post(path, req, &result); err != nil {
 		return fmt.Errorf("failed to add comment: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateComment updates an existing comment
+func (c *Client) UpdateComment(issueKey, commentID, body string) error {
+	path := fmt.Sprintf("/rest/api/2/issue/%s/comment/%s", issueKey, commentID)
+
+	req := map[string]string{"body": body}
+
+	if err := c.Put(path, req); err != nil {
+		return fmt.Errorf("failed to update comment: %w", err)
 	}
 
 	return nil

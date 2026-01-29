@@ -247,7 +247,7 @@ func (m *WorkflowModel) generateIssueYAML() (string, error) {
 	for _, comment := range m.comments {
 		export.Comments = append(export.Comments, CommentExport{
 			Author:  comment.Author.DisplayName,
-			Created: comment.Created,
+			Created: comment.GetCreated(),
 			Body:    comment.Body,
 		})
 	}

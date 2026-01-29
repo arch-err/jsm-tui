@@ -1,5 +1,6 @@
 # Binaries
-jsm-tui
+/jsm-tui
+/jsm-notify
 *.exe
 *.exe~
 *.dll

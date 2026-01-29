@@ -197,6 +197,30 @@ func (c *Client) SearchAssignableUsers(issueKey, query string) ([]User, error) {
 	return users, nil
 }
 
+// GetUserByAccountID fetches a user by their account ID (Jira Cloud)
+func (c *Client) GetUserByAccountID(accountID string) (*User, error) {
+	path := fmt.Sprintf("/rest/api/2/user?accountId=%s", url.QueryEscape(accountID))
+
+	var user User
+	if err := c.Get(path, &user); err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return &user, nil
+}
+
+// GetUserByUsername fetches a user by their username (Jira Server/Data Center)
+func (c *Client) GetUserByUsername(username string) (*User, error) {
+	path := fmt.Sprintf("/rest/api/2/user?username=%s", url.QueryEscape(username))
+
+	var user User
+	if err := c.Get(path, &user); err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return &user, nil
+}
+
 // GetProformaForms fetches all proforma forms for an issue
 func (c *Client) GetProformaForms(issueKey string) ([]ProformaForm, error) {
 	// First get the list of forms

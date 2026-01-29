@@ -29,6 +29,8 @@ type KeyMap struct {
 	NextMatch              key.Binding
 	PrevMatch              key.Binding
 	Workflow               key.Binding
+	EditComment            key.Binding
+	QuickAction            key.Binding
 }
 
 // DefaultKeyMap returns the default key bindings
@@ -133,6 +135,14 @@ func DefaultKeyMap() KeyMap {
 		Workflow: key.NewBinding(
 			key.WithKeys("w"),
 			key.WithHelp("w", "workflow"),
+		),
+		EditComment: key.NewBinding(
+			key.WithKeys("e"),
+			key.WithHelp("e", "edit comment"),
+		),
+		QuickAction: key.NewBinding(
+			key.WithKeys("A"),
+			key.WithHelp("A", "quick action"),
 		),
 	}
 }

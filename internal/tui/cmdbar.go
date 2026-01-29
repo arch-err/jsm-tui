@@ -221,6 +221,9 @@ func (m *CmdBarModel) ViewWithHints(hints string) string {
 	return lipgloss.JoinVertical(lipgloss.Left, bar, HelpStyle.Render(hints))
 }
 
+// browseIssueMsg signals to open the current issue in browser
+type browseIssueMsg struct{}
+
 // ExecuteCommand executes a command and returns appropriate message
 func ExecuteCommand(cmd string) tea.Msg {
 	cmd = strings.TrimSpace(cmd)
@@ -233,6 +236,8 @@ func ExecuteCommand(cmd string) tea.Msg {
 		return nil
 	case "wq":
 		return tea.Quit()
+	case "browse", "open", "b":
+		return browseIssueMsg{}
 	}
 
 	return nil

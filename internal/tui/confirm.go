@@ -75,14 +75,18 @@ func (m *ConfirmModel) Update(msg tea.Msg) (*ConfirmModel, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "esc":
+		key := msg.String()
+
+		// Check for Escape (multiple ways)
+		if msg.Type == tea.KeyEsc || msg.Type == tea.KeyCtrlC || key == "esc" || key == "ctrl+c" {
 			m.cancelled = true
 			return m, func() tea.Msg {
 				return ConfirmResult{Confirmed: false, ID: m.id}
 			}
+		}
 
-		case "enter":
+		// Check for Enter (multiple ways)
+		if msg.Type == tea.KeyEnter || key == "enter" {
 			m.confirmed = true
 			return m, func() tea.Msg {
 				return ConfirmResult{
@@ -91,17 +95,18 @@ func (m *ConfirmModel) Update(msg tea.Msg) (*ConfirmModel, tea.Cmd) {
 					ID:        m.id,
 				}
 			}
+		}
 
-		case "y", "Y":
-			if !m.showInput {
+		// Handle y/n for non-input modals
+		if !m.showInput {
+			switch key {
+			case "y", "Y":
 				m.confirmed = true
 				return m, func() tea.Msg {
 					return ConfirmResult{Confirmed: true, ID: m.id}
 				}
-			}
 
-		case "n", "N":
-			if !m.showInput {
+			case "n", "N":
 				m.cancelled = true
 				return m, func() tea.Msg {
 					return ConfirmResult{Confirmed: false, ID: m.id}

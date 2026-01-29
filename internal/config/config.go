@@ -16,6 +16,16 @@ type Config struct {
 	Username  string           `yaml:"username,omitempty"` // Display name to identify "me"
 	Queues    QueuesConfig     `yaml:"queues,omitempty"`
 	Workflows []WorkflowConfig `yaml:"workflows,omitempty"`
+	Actions   []ActionConfig   `yaml:"actions,omitempty"`
+}
+
+// ActionConfig defines a quick action
+type ActionConfig struct {
+	Name          string           `yaml:"name"`
+	Status        string           `yaml:"status,omitempty"`         // Target status to transition to
+	PendingReason string           `yaml:"pending_reason,omitempty"` // For "Pending" status
+	RequestTypes  RequestTypeMatch `yaml:"request_types"`
+	Comment       string           `yaml:"comment,omitempty"` // Optional comment to add
 }
 
 // WorkflowConfig defines a workflow automation
@@ -31,9 +41,9 @@ type RequestTypeMatch struct {
 	Types []string
 }
 
-// UnmarshalYAML handles both "any" string and array of strings
+// UnmarshalYAML handles "any" string, array of strings, or struct format
 func (r *RequestTypeMatch) UnmarshalYAML(value *yaml.Node) error {
-	// Try as string first
+	// Try as string first ("any" or single type)
 	var s string
 	if err := value.Decode(&s); err == nil {
 		if s == "any" {
@@ -45,14 +55,33 @@ func (r *RequestTypeMatch) UnmarshalYAML(value *yaml.Node) error {
 		return nil
 	}
 
-	// Try as array
+	// Try as array of strings
 	var arr []string
 	if err := value.Decode(&arr); err == nil {
 		r.Types = arr
 		return nil
 	}
 
-	return fmt.Errorf("request_types must be 'any' or an array of strings")
+	// Try as struct (for backwards compatibility with saved configs)
+	var obj struct {
+		Any   bool     `yaml:"any"`
+		Types []string `yaml:"types"`
+	}
+	if err := value.Decode(&obj); err == nil {
+		r.Any = obj.Any
+		r.Types = obj.Types
+		return nil
+	}
+
+	return fmt.Errorf("request_types must be 'any', an array of strings, or {any: bool, types: []}")
+}
+
+// MarshalYAML writes the simple format
+func (r RequestTypeMatch) MarshalYAML() (interface{}, error) {
+	if r.Any {
+		return "any", nil
+	}
+	return r.Types, nil
 }
 
 // Matches checks if a request type matches this config

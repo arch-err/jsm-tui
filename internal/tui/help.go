@@ -1,49 +1,56 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 // HelpModel displays keybindings help
 type HelpModel struct {
-	width  int
-	height int
+	width    int
+	height   int
+	viewport viewport.Model
+	ready    bool
 }
 
 // NewHelpModel creates a new help model
 func NewHelpModel(width, height int) *HelpModel {
-	return &HelpModel{
+	m := &HelpModel{
 		width:  width,
 		height: height,
 	}
+	m.setupViewport()
+	return m
 }
 
-// closeHelpMsg is sent when help should close
-type closeHelpMsg struct{}
+// setupViewport initializes the viewport with content
+func (m *HelpModel) setupViewport() {
+	// Calculate modal dimensions
+	modalWidth := 44
+	maxModalHeight := m.height - 4 // Leave some margin
 
-// Update handles messages
-func (m *HelpModel) Update(msg tea.Msg) (*HelpModel, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		return m, nil
+	// Build content
+	content := m.buildContent()
+	contentLines := strings.Count(content, "\n") + 1
 
-	case tea.KeyMsg:
-		// Any key closes help
-		return m, func() tea.Msg {
-			return closeHelpMsg{}
-		}
+	// Calculate actual modal height (content + padding + border)
+	contentHeight := contentLines
+	if contentHeight > maxModalHeight-4 {
+		contentHeight = maxModalHeight - 4
 	}
 
-	return m, nil
+	// Create viewport
+	m.viewport = viewport.New(modalWidth-4, contentHeight) // -4 for padding/border
+	m.viewport.SetContent(content)
+	m.ready = true
 }
 
-// View renders the help modal
-func (m *HelpModel) View() string {
+// buildContent builds the help text content
+func (m *HelpModel) buildContent() string {
 	keyStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("39")).
 		Bold(true).
@@ -59,9 +66,6 @@ func (m *HelpModel) View() string {
 
 	var content strings.Builder
 
-	// Title
-	content.WriteString(TitleStyle.Render("Keybindings") + "\n")
-
 	// Navigation
 	content.WriteString(sectionStyle.Render("Navigation") + "\n")
 	content.WriteString(keyStyle.Render("j / ↓") + descStyle.Render("Move down") + "\n")
@@ -76,7 +80,9 @@ func (m *HelpModel) View() string {
 	content.WriteString(sectionStyle.Render("Actions") + "\n")
 	content.WriteString(keyStyle.Render("s") + descStyle.Render("Transition status") + "\n")
 	content.WriteString(keyStyle.Render("c") + descStyle.Render("Add comment") + "\n")
+	content.WriteString(keyStyle.Render("e") + descStyle.Render("Edit comment (own)") + "\n")
 	content.WriteString(keyStyle.Render("a") + descStyle.Render("Assign issue") + "\n")
+	content.WriteString(keyStyle.Render("A") + descStyle.Render("Quick action") + "\n")
 	content.WriteString(keyStyle.Render("R") + descStyle.Render("Rename issue") + "\n")
 	content.WriteString(keyStyle.Render("w") + descStyle.Render("Run workflow") + "\n")
 	content.WriteString(keyStyle.Render("r") + descStyle.Render("Refresh") + "\n")
@@ -89,7 +95,7 @@ func (m *HelpModel) View() string {
 	// Queues
 	content.WriteString(sectionStyle.Render("Queues") + "\n")
 	content.WriteString(keyStyle.Render("*") + descStyle.Render("Toggle favorite") + "\n")
-	content.WriteString(keyStyle.Render("h") + descStyle.Render("Toggle show favorites only") + "\n")
+	content.WriteString(keyStyle.Render("h") + descStyle.Render("Show favorites only") + "\n")
 
 	// Search & Command
 	content.WriteString(sectionStyle.Render("Search & Command") + "\n")
@@ -104,27 +110,102 @@ func (m *HelpModel) View() string {
 	content.WriteString(keyStyle.Render("Z Z") + descStyle.Render("Quit") + "\n")
 	content.WriteString(keyStyle.Render("Ctrl+C") + descStyle.Render("Force quit") + "\n")
 
+	return content.String()
+}
+
+// closeHelpMsg is sent when help should close
+type closeHelpMsg struct{}
+
+// Update handles messages
+func (m *HelpModel) Update(msg tea.Msg) (*HelpModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m.setupViewport()
+		return m, nil
+
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "esc", "?":
+			// Close help
+			return m, func() tea.Msg {
+				return closeHelpMsg{}
+			}
+		case "j", "down":
+			m.viewport.ScrollDown(1)
+			return m, nil
+		case "k", "up":
+			m.viewport.ScrollUp(1)
+			return m, nil
+		case "g":
+			m.viewport.GotoTop()
+			return m, nil
+		case "G":
+			m.viewport.GotoBottom()
+			return m, nil
+		}
+	}
+
+	// Pass to viewport for other scrolling (pgup, pgdown, etc)
+	var cmd tea.Cmd
+	m.viewport, cmd = m.viewport.Update(msg)
+	return m, cmd
+}
+
+// View renders the help modal
+func (m *HelpModel) View() string {
+	if !m.ready {
+		return ""
+	}
+
+	// Title
+	title := TitleStyle.Render("Keybindings")
+
+	// Scroll indicator
+	scrollInfo := ""
+	if m.viewport.TotalLineCount() > m.viewport.Height {
+		percent := int(m.viewport.ScrollPercent() * 100)
+		scrollInfo = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("241")).
+			Render(fmt.Sprintf(" (%d%%)", percent))
+	}
+
 	// Footer
-	content.WriteString("\n" + HelpStyle.Render("Press any key to close"))
+	footer := HelpStyle.Render("j/k scroll • q/esc close")
+
+	// Calculate modal width
+	modalWidth := 44
+
+	// Combine content
+	content := lipgloss.JoinVertical(
+		lipgloss.Left,
+		title+scrollInfo,
+		"",
+		m.viewport.View(),
+		"",
+		footer,
+	)
 
 	// Popup style
-	popupWidth := 40
 	popupStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#7B68EE")).
 		Padding(1, 2).
-		Width(popupWidth)
+		Width(modalWidth)
 
-	popup := popupStyle.Render(content.String())
+	popup := popupStyle.Render(content)
 
 	// Center the popup
-	popupHeight := strings.Count(popup, "\n") + 1
+	popupHeight := lipgloss.Height(popup)
+	popupWidth := lipgloss.Width(popup)
+
 	verticalPadding := (m.height - popupHeight) / 2
 	if verticalPadding < 0 {
 		verticalPadding = 0
 	}
 
-	horizontalPadding := (m.width - popupWidth - 4) / 2
+	horizontalPadding := (m.width - popupWidth) / 2
 	if horizontalPadding < 0 {
 		horizontalPadding = 0
 	}
