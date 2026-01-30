@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -8,15 +9,37 @@ import (
 
 // CopyToClipboard copies text to the system clipboard
 func CopyToClipboard(text string) error {
-	// Try various clipboard commands
-	commands := []struct {
+	// Detect Wayland vs X11
+	isWayland := os.Getenv("WAYLAND_DISPLAY") != ""
+
+	// Order commands based on display server
+	var commands []struct {
 		name string
 		args []string
-	}{
-		{"xclip", []string{"-selection", "clipboard"}},
-		{"xsel", []string{"--clipboard", "--input"}},
-		{"wl-copy", []string{}},
-		{"pbcopy", []string{}},
+	}
+
+	if isWayland {
+		// Wayland: prefer wl-copy
+		commands = []struct {
+			name string
+			args []string
+		}{
+			{"wl-copy", []string{}},
+			{"xclip", []string{"-selection", "clipboard"}}, // XWayland fallback
+			{"xsel", []string{"--clipboard", "--input"}},
+			{"pbcopy", []string{}},
+		}
+	} else {
+		// X11 or macOS
+		commands = []struct {
+			name string
+			args []string
+		}{
+			{"xclip", []string{"-selection", "clipboard"}},
+			{"xsel", []string{"--clipboard", "--input"}},
+			{"wl-copy", []string{}},
+			{"pbcopy", []string{}},
+		}
 	}
 
 	for _, cmd := range commands {
