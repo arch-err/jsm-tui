@@ -126,27 +126,44 @@ func (c *Client) getCommentsJiraAPI(issueKey string) ([]Comment, error) {
 }
 
 // AddComment adds a public comment to an issue (visible to customers)
+// This may trigger workflow transitions (e.g., status change to "Waiting for Customer")
 func (c *Client) AddComment(issueKey, body string) error {
-	return c.addCommentWithVisibility(issueKey, body, false)
+	return c.addCommentWithOptions(issueKey, body, false, true)
+}
+
+// AddPassiveComment adds a public comment without triggering workflow transitions
+// The comment is visible to customers but won't change the issue status
+func (c *Client) AddPassiveComment(issueKey, body string) error {
+	return c.addCommentWithOptions(issueKey, body, false, false)
 }
 
 // AddInternalComment adds an internal comment to an issue (hidden from customers)
 func (c *Client) AddInternalComment(issueKey, body string) error {
-	return c.addCommentWithVisibility(issueKey, body, true)
+	return c.addCommentWithOptions(issueKey, body, true, false)
 }
 
-// addCommentWithVisibility adds a comment with specified visibility
-func (c *Client) addCommentWithVisibility(issueKey, body string, internal bool) error {
+// addCommentWithOptions adds a comment with specified visibility and transition settings
+func (c *Client) addCommentWithOptions(issueKey, body string, internal, allowTransition bool) error {
 	path := fmt.Sprintf("/rest/api/2/issue/%s/comment", issueKey)
 
-	req := AddCommentRequest{
-		Body: body,
-		Properties: []CommentProperty{
-			{
-				Key:   "sd.public.comment",
-				Value: map[string]interface{}{"internal": internal},
-			},
+	properties := []CommentProperty{
+		{
+			Key:   "sd.public.comment",
+			Value: map[string]interface{}{"internal": internal},
 		},
+	}
+
+	// Add property to prevent workflow transitions if needed
+	if !allowTransition {
+		properties = append(properties, CommentProperty{
+			Key:   "sd.allow.public.comment.transition",
+			Value: map[string]interface{}{"allow": false},
+		})
+	}
+
+	req := AddCommentRequest{
+		Body:       body,
+		Properties: properties,
 	}
 
 	var result Comment

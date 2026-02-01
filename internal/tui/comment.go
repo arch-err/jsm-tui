@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/arch-err/jsm-tui/internal/jira"
+	"github.com/arch-err/jsm-tui/internal/storage"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -18,6 +19,7 @@ type CommentFocus int
 const (
 	FocusInput CommentFocus = iota
 	FocusSubmit
+	FocusPassive
 	FocusInternal
 	FocusCancel
 )
@@ -81,6 +83,11 @@ func NewCommentModel(client *jira.Client, issue jira.Issue, keys KeyMap, width, 
 
 	// Cursor line style (no highlight)
 	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
+
+	// Load any existing draft
+	if draft, err := storage.LoadDraft(issue.Key, storage.DraftTypeComment); err == nil && draft != "" {
+		ta.SetValue(draft)
+	}
 
 	return &CommentModel{
 		client:   client,
@@ -204,30 +211,37 @@ func (m *CommentModel) insertMention(user jira.User) {
 	}
 }
 
-// submitComment submits the comment (internal=true for internal comments)
-func (m *CommentModel) submitComment(internal bool) tea.Cmd {
+// submitComment submits the comment with the specified type (public, passive, internal)
+func (m *CommentModel) submitComment(commentType string) tea.Cmd {
 	// Trim leading/trailing whitespace (including newlines)
 	body := strings.TrimSpace(m.textarea.Value())
+	issueKey := m.issue.Key
+	isEdit := m.isEditMode
 
 	return func() tea.Msg {
 		var err error
-		if m.isEditMode {
+		if isEdit {
 			// Update existing comment
-			err = m.client.UpdateComment(m.issue.Key, m.commentID, body)
+			err = m.client.UpdateComment(issueKey, m.commentID, body)
 			if err != nil {
 				return errorMsg{err: err}
 			}
 			return commentEditedMsg{}
 		}
-		// Add new comment
-		if internal {
-			err = m.client.AddInternalComment(m.issue.Key, body)
-		} else {
-			err = m.client.AddComment(m.issue.Key, body)
+		// Add new comment based on type
+		switch commentType {
+		case "internal":
+			err = m.client.AddInternalComment(issueKey, body)
+		case "passive":
+			err = m.client.AddPassiveComment(issueKey, body)
+		default: // "public"
+			err = m.client.AddComment(issueKey, body)
 		}
 		if err != nil {
 			return errorMsg{err: err}
 		}
+		// Delete draft after successful submission
+		storage.DeleteDraft(issueKey, storage.DraftTypeComment)
 		return commentAddedMsg{}
 	}
 }
@@ -371,7 +385,10 @@ func (m *CommentModel) Update(msg tea.Msg) (*CommentModel, tea.Cmd) {
 		// Normal mode - navigate with hjkl
 		switch key {
 		case "esc":
-			// Cancel and go back
+			// Save draft and go back (only for new comments, not edits)
+			if !m.isEditMode {
+				storage.SaveDraft(m.issue.Key, storage.DraftTypeComment, m.textarea.Value())
+			}
 			return m, func() tea.Msg {
 				return backToDetailMsg{}
 			}
@@ -379,16 +396,18 @@ func (m *CommentModel) Update(msg tea.Msg) (*CommentModel, tea.Cmd) {
 		case "h":
 			// Move left on button row
 			if m.isEditMode {
-				// In edit mode: Cancel -> Submit (no Internal)
+				// In edit mode: Cancel -> Submit (no Passive/Internal)
 				if m.focus == FocusCancel {
 					m.focus = FocusSubmit
 				}
 			} else {
-				// Normal mode: Cancel -> Internal -> Submit
+				// Normal mode: Cancel -> Internal -> Passive -> Submit
 				switch m.focus {
 				case FocusCancel:
 					m.focus = FocusInternal
 				case FocusInternal:
+					m.focus = FocusPassive
+				case FocusPassive:
 					m.focus = FocusSubmit
 				}
 			}
@@ -396,14 +415,16 @@ func (m *CommentModel) Update(msg tea.Msg) (*CommentModel, tea.Cmd) {
 		case "l":
 			// Move right on button row
 			if m.isEditMode {
-				// In edit mode: Submit -> Cancel (no Internal)
+				// In edit mode: Submit -> Cancel (no Passive/Internal)
 				if m.focus == FocusSubmit {
 					m.focus = FocusCancel
 				}
 			} else {
-				// Normal mode: Submit -> Internal -> Cancel
+				// Normal mode: Submit -> Passive -> Internal -> Cancel
 				switch m.focus {
 				case FocusSubmit:
+					m.focus = FocusPassive
+				case FocusPassive:
 					m.focus = FocusInternal
 				case FocusInternal:
 					m.focus = FocusCancel
@@ -433,16 +454,26 @@ func (m *CommentModel) Update(msg tea.Msg) (*CommentModel, tea.Cmd) {
 			case FocusSubmit:
 				if m.textarea.Value() != "" {
 					m.submitting = true
-					return m, m.submitComment(false)
+					return m, m.submitComment("public")
+				}
+
+			case FocusPassive:
+				if m.textarea.Value() != "" {
+					m.submitting = true
+					return m, m.submitComment("passive")
 				}
 
 			case FocusInternal:
 				if m.textarea.Value() != "" {
 					m.submitting = true
-					return m, m.submitComment(true)
+					return m, m.submitComment("internal")
 				}
 
 			case FocusCancel:
+				// Save draft when canceling (only for new comments)
+				if !m.isEditMode {
+					storage.SaveDraft(m.issue.Key, storage.DraftTypeComment, m.textarea.Value())
+				}
 				return m, func() tea.Msg {
 					return backToDetailMsg{}
 				}
@@ -564,13 +595,14 @@ func (m *CommentModel) View() string {
 	submitBtn := buttonStyle(m.focus == FocusSubmit).Render("Submit")
 	cancelBtn := buttonStyle(m.focus == FocusCancel).Render("Cancel")
 
-	// Buttons row - hide Internal button in edit mode (can't change visibility of existing comment)
+	// Buttons row - hide Passive/Internal buttons in edit mode (can't change visibility of existing comment)
 	var buttons string
 	if m.isEditMode {
 		buttons = lipgloss.JoinHorizontal(lipgloss.Center, submitBtn, "  ", cancelBtn)
 	} else {
+		passiveBtn := buttonStyle(m.focus == FocusPassive).Render("Passive")
 		internalBtn := buttonStyle(m.focus == FocusInternal).Render("Internal")
-		buttons = lipgloss.JoinHorizontal(lipgloss.Center, submitBtn, "  ", internalBtn, "  ", cancelBtn)
+		buttons = lipgloss.JoinHorizontal(lipgloss.Center, submitBtn, "  ", passiveBtn, "  ", internalBtn, "  ", cancelBtn)
 	}
 
 	// Combine all elements

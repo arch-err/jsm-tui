@@ -288,6 +288,19 @@ func (m *DetailModel) Update(msg tea.Msg) (*DetailModel, tea.Cmd) {
 			}
 			return m, nil
 
+		case key.Matches(msg, m.keys.Enter):
+			// Open selected field in preview modal
+			if m.selectedField >= 0 && m.selectedField < len(m.yankableFields) {
+				field := m.yankableFields[m.selectedField]
+				return m, func() tea.Msg {
+					return openPreviewMsg{
+						title:   field.Label,
+						content: field.Value,
+					}
+				}
+			}
+			return m, nil
+
 		case key.Matches(msg, m.keys.Assign):
 			return m, func() tea.Msg {
 				return openAssignMsg{issue: m.issue}
@@ -819,21 +832,29 @@ func (m *DetailModel) renderMainContent(width int) string {
 				answerWidth = 20
 			}
 
-			answerText := wrapText(field.Answer, answerWidth)
-			answerLines := strings.Split(answerText, "\n")
-
 			isMatch := fieldIndex < len(m.yankableFields) && m.yankableFields[fieldIndex].IsMatch
+			isSelected := m.selectedField == fieldIndex
 
-			// First line: "Label: first line of answer"
-			labelText := labelStyle.Render(labelWithColon)
-			firstLine := labelText + renderField(answerLines[0], m.selectedField == fieldIndex, isMatch)
-			sb.WriteString(firstLine + "\n")
-			lineNum++
+			// Check if answer is multiline
+			isMultiline := strings.Contains(field.Answer, "\n") || len(field.Answer) > answerWidth
 
-			// Subsequent lines: indented to align with answer
-			indent := strings.Repeat(" ", labelWidth)
-			for i := 1; i < len(answerLines); i++ {
-				sb.WriteString(indent + renderField(answerLines[i], m.selectedField == fieldIndex, isMatch) + "\n")
+			if isMultiline {
+				// For multiline: render label on its own line, then answer below
+				sb.WriteString(labelStyle.Render(labelWithColon) + "\n")
+				lineNum++
+
+				// Render answer as a block (same as descriptions)
+				answerText := wrapText(field.Answer, width-4)
+				sb.WriteString(renderField(answerText, isSelected, isMatch) + "\n")
+				lineNum += strings.Count(answerText, "\n") + 1
+			} else {
+				// For single line: "Label: Answer" format
+				labelText := labelStyle.Render(labelWithColon)
+				answerLine := field.Answer
+				if isSelected {
+					answerLine = padRight(answerLine, answerWidth)
+				}
+				sb.WriteString(labelText + renderField(answerLine, isSelected, isMatch) + "\n")
 				lineNum++
 			}
 
@@ -1019,6 +1040,15 @@ func formatDate(dateStr string) string {
 
 	// Otherwise show the date
 	return t.Local().Format("2006-01-02")
+}
+
+// padRight pads a string with spaces to reach the target width
+func padRight(text string, width int) string {
+	textWidth := lipgloss.Width(text)
+	if textWidth >= width {
+		return text
+	}
+	return text + strings.Repeat(" ", width-textWidth)
 }
 
 func wrapText(text string, width int) string {

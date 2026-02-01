@@ -24,6 +24,7 @@ const (
 	HelpView
 	WorkflowView
 	ActionView
+	PreviewView
 )
 
 // ModelOptions contains optional configuration for the Model
@@ -53,6 +54,7 @@ type Model struct {
 	helpView       *HelpModel
 	workflowView   *WorkflowModel
 	actionView     *ActionModel
+	previewView    *PreviewModel
 
 	// Command bar
 	cmdBar *CmdBarModel
@@ -203,7 +205,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		inModal := m.currentView == AssignView || m.currentView == TransitionView ||
 			m.currentView == CommentView || m.currentView == ConfirmView ||
 			m.currentView == HelpView || m.currentView == WorkflowView ||
-			m.currentView == ActionView
+			m.currentView == ActionView || m.currentView == PreviewView
 
 		// Command mode (not in modals)
 		if key.Matches(msg, m.keys.Command) && !inModal {
@@ -336,6 +338,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentView = CommentView
 		return m, nil
 
+	case openPreviewMsg:
+		m.previewView = NewPreviewModel(msg.title, msg.content, m.width, m.height)
+		m.currentView = PreviewView
+		return m, nil
+
+	case closePreviewMsg:
+		m.currentView = IssueDetailView
+		m.previewView = nil
+		return m, nil
+
 	case backToDetailMsg:
 		m.currentView = IssueDetailView
 		m.transitionView = nil
@@ -401,6 +413,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.workflowView, cmd = m.workflowView.Update(msg)
 	case ActionView:
 		m.actionView, cmd = m.actionView.Update(msg)
+	case PreviewView:
+		m.previewView, cmd = m.previewView.Update(msg)
 	}
 
 	return m, cmd
@@ -502,6 +516,8 @@ func (m Model) View() string {
 		content = m.workflowView.View()
 	case ActionView:
 		content = m.actionView.View()
+	case PreviewView:
+		content = m.previewView.View()
 	default:
 		content = "Unknown view"
 	}
@@ -535,6 +551,10 @@ type openEditCommentMsg struct {
 	issue     jira.Issue
 	commentID string
 	body      string
+}
+type openPreviewMsg struct {
+	title   string
+	content string
 }
 type backToDetailMsg struct{}
 type transitionCompletedMsg struct{}

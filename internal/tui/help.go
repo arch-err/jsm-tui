@@ -73,7 +73,7 @@ func (m *HelpModel) buildContent() string {
 	content.WriteString(keyStyle.Render("g g") + descStyle.Render("Go to top") + "\n")
 	content.WriteString(keyStyle.Render("G") + descStyle.Render("Go to bottom") + "\n")
 	content.WriteString(keyStyle.Render("g x") + descStyle.Render("Open URL in browser") + "\n")
-	content.WriteString(keyStyle.Render("Enter") + descStyle.Render("Select / Open") + "\n")
+	content.WriteString(keyStyle.Render("Enter") + descStyle.Render("Select / Preview field") + "\n")
 	content.WriteString(keyStyle.Render("Esc") + descStyle.Render("Back / Cancel") + "\n")
 
 	// Actions
