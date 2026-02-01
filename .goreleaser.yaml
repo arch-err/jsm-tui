@@ -7,6 +7,7 @@ before:
 
 builds:
   - binary: jsm-tui
+    main: ./cmd/jsm-tui
     env:
       - CGO_ENABLED=0
     goos:
