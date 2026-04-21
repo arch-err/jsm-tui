@@ -224,6 +224,9 @@ func (m *CmdBarModel) ViewWithHints(hints string) string {
 // browseIssueMsg signals to open the current issue in browser
 type browseIssueMsg struct{}
 
+// copyIssueURLMsg signals to copy the current issue URL to the clipboard
+type copyIssueURLMsg struct{}
+
 // ExecuteCommand executes a command and returns appropriate message
 func ExecuteCommand(cmd string) tea.Msg {
 	cmd = strings.TrimSpace(cmd)
@@ -238,6 +241,8 @@ func ExecuteCommand(cmd string) tea.Msg {
 		return tea.Quit()
 	case "browse", "open", "b":
 		return browseIssueMsg{}
+	case "url":
+		return copyIssueURLMsg{}
 	}
 
 	return nil

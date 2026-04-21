@@ -447,6 +447,16 @@ func (m *DetailModel) yankIssueKey() tea.Cmd {
 	})
 }
 
+// YankIssueURL copies the issue URL to clipboard
+func (m *DetailModel) YankIssueURL(url string) tea.Cmd {
+	CopyToClipboard(url)
+	m.lastYank = url
+	m.yankFeedbackEnd = time.Now().Add(2 * time.Second)
+	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+		return clearYankFeedbackMsg{}
+	})
+}
+
 // yankSelectedField copies the selected field value to clipboard
 func (m *DetailModel) yankSelectedField() tea.Cmd {
 	if m.selectedField >= 0 && m.selectedField < len(m.yankableFields) {

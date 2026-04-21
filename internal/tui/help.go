@@ -104,6 +104,7 @@ func (m *HelpModel) buildContent() string {
 	content.WriteString(keyStyle.Render("N") + descStyle.Render("Previous match") + "\n")
 	content.WriteString(keyStyle.Render(":") + descStyle.Render("Command mode") + "\n")
 	content.WriteString(keyStyle.Render(":q") + descStyle.Render("Quit") + "\n")
+	content.WriteString(keyStyle.Render(":url") + descStyle.Render("Copy issue URL to clipboard") + "\n")
 
 	// Quit
 	content.WriteString(sectionStyle.Render("Quit") + "\n")

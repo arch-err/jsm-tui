@@ -292,6 +292,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case copyIssueURLMsg:
+		// Copy current issue URL to clipboard
+		if m.currentView == IssueDetailView && m.detailView != nil {
+			url := fmt.Sprintf("%s/browse/%s", m.cfg.URL, m.detailView.issue.Key)
+			return m, m.detailView.YankIssueURL(url)
+		}
+		return m, nil
+
 	case queueSelectedMsg:
 		m.issuesView = NewIssuesModel(m.client, m.cfg.Project, msg.queue, m.keys, m.currentUsername, m.width, m.height)
 		m.currentView = IssueListView
