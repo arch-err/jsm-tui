@@ -6,6 +6,8 @@ when_to_use: User talks about Jira tickets, queues, "my issues", "my queue", or 
 
 # jsm
 
+> Use **`jsm-cli`** (the non-interactive JSON CLI). Never `jsm-tui` (that's an interactive Bubbletea TUI for humans, you can't drive it). The repo is named `jsm-tui` because the TUI shipped first; the binary you want is `jsm-cli`.
+>
 > Templated skill. If you see literal `__PLACEHOLDER__` strings, install was incomplete — re-run the flow in `docs/agent-usage.md` from the upstream repo.
 
 ## User identity

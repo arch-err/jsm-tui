@@ -1,5 +1,7 @@
 # jsm-cli — agent install guide
 
+> **You want `jsm-cli`, not `jsm-tui`.** The repo is named `jsm-tui` because the human-facing TUI shipped first. As an LLM agent, you should install and use **`jsm-cli`** — the non-interactive JSON CLI. Never run `jsm-tui` from an agent context: it opens a Bubbletea TUI that needs interactive keyboard input you can't provide.
+
 This guide is for **AI coding agents** (Claude Code, Cursor, Codex, Aider, pi, custom harnesses) installing `jsm-cli` on behalf of a user for the first time.
 
 If you're a human, see [README.md](../README.md).
@@ -8,7 +10,7 @@ If you're a human, see [README.md](../README.md).
 
 `jsm-cli` is a non-interactive JSON CLI for Jira Service Management. The agent shells out to it. It outputs JSON to stdout, errors to stderr, exits non-zero on failure.
 
-Sister binary to `jsm-tui` (interactive TUI for humans). Same config, same API client.
+Sister binary to `jsm-tui` (interactive TUI for humans — DO NOT install or run as an agent). Same config, same API client, completely different invocation model.
 
 ## Install flow (run once per system)
 

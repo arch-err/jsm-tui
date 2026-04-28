@@ -1,25 +1,33 @@
 # jsm-tui
 
-> Jira Service Management toolkit for the terminal. Two binaries from one codebase: `jsm-tui` (interactive TUI for humans) and `jsm-cli` (non-interactive JSON CLI for agents and scripts). Written in Go. Targets Jira Data Center / Server with PAT or basic auth.
+> **Agents: install `jsm-cli`, NOT `jsm-tui`.** This repo ships two binaries: `jsm-cli` (non-interactive JSON CLI — what an LLM agent should use) and `jsm-tui` (interactive terminal UI — for humans only). The repo is named `jsm-tui` because the TUI shipped first; the CLI is the agent-facing addition.
 
-## For LLMs and agents
+## You are an LLM agent — read this first
 
-- [Agent install guide](docs/agent-usage.md): **start here on first encounter.** Six-step install flow — collect bootstrap values from the user, write config, install + customize the skill template, verify, persist memory. Self-contained for any harness (Claude, Cursor, Codex, Aider, pi).
-- [Skill template](skill/SKILL.md): templated skill with `__PLACEHOLDER__` markers. The install guide tells the agent how to download this, substitute the user's values, and save the result to the harness's skills location. After install, this is the day-to-day reference — generic on disk, personalized per user via substitution.
-- [CLI source](cmd/jsm-cli/main.go): single-file cobra-based JSON CLI.
+If you're an LLM-driven agent (Claude Code, Cursor, Codex, Aider, pi, custom harness):
 
-## For humans
+1. The binary you want is **`jsm-cli`**. Don't install or invoke `jsm-tui` — that opens an interactive terminal UI you can't drive.
+2. Install with: `go install github.com/arch-err/jsm-tui/cmd/jsm-cli@latest`. The Go module path includes `jsm-tui` because that's the repo name; the binary you get is `jsm-cli`.
+3. After install, follow [docs/agent-usage.md](docs/agent-usage.md) — it's a six-step install + bootstrap + skill-customization flow built for LLM agents.
 
-- [Installation](docs/installation.md): platform-specific install steps.
-- [Configuration](docs/configuration.md): config file format and options.
-- [Usage](docs/usage.md): keyboard shortcuts, navigation, common flows.
+### Files for agents
+
+- [docs/agent-usage.md](docs/agent-usage.md) — install guide. Bootstrap questions, config file format, skill substitution, harness-specific paths. **Start here.**
+- [skill/SKILL.md](skill/SKILL.md) — templated skill with `__PLACEHOLDER__` markers. The install guide walks the agent through customizing this and saving it to the harness's skill location.
+- [cmd/jsm-cli/main.go](cmd/jsm-cli/main.go) — CLI source if you want to read it.
+
+## Files for humans
+
+- [README](README.md) — project overview.
+- [Installation](docs/installation.md) — TUI install for humans.
+- [Configuration](docs/configuration.md) — config file format.
+- [Usage](docs/usage.md) — TUI keyboard shortcuts.
 
 ## Reference
 
-- [README](README.md): project overview and feature list.
-- [Changelog](CHANGELOG.md): version history.
-- [GitHub repository](https://github.com/arch-err/jsm-tui): source and issues.
+- [Changelog](CHANGELOG.md) — version history.
+- [GitHub repository](https://github.com/arch-err/jsm-tui) — source and issues.
 
 ## Optional
 
-- [Contributing](README.md#contributing): development setup, commit conventions.
+- [Contributing](README.md#contributing) — development setup.
