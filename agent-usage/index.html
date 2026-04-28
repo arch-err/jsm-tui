@@ -1,0 +1,940 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Jira Service Management TUI for browsing queues, viewing tickets, and taking actions from the terminal">
+      
+      
+        <meta name="author" content="arch-err">
+      
+      
+        <link rel="canonical" href="https://arch-err.github.io/jsm-tui/agent-usage/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>jsm-cli — agent install guide - jsm-tui</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#jsm-cli-agent-install-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="jsm-tui" class="md-header__button md-logo" aria-label="jsm-tui" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            jsm-tui
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              jsm-cli — agent install guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/arch-err/jsm-tui" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    arch-err/jsm-tui
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configuration/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../usage/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Usage
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="jsm-tui" class="md-nav__button md-logo" aria-label="jsm-tui" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    jsm-tui
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/arch-err/jsm-tui" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    arch-err/jsm-tui
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-flow-run-once-per-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install flow (run once per system)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Install flow (run once per system)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-install-the-binary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — install the binary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-ask-the-user-the-bootstrap-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — ask the user the bootstrap questions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-write-the-config-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — write the config file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-install-the-skill-template-substitution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 — install the skill (template substitution)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 — verify
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-6-persist-shorthand-in-agent-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6 — persist shorthand in agent memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#re-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Re-bootstrap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#after-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        After install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="jsm-cli-agent-install-guide">jsm-cli — agent install guide<a class="headerlink" href="#jsm-cli-agent-install-guide" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>You want <code>jsm-cli</code>, not <code>jsm-tui</code>.</strong> The repo is named <code>jsm-tui</code> because the human-facing TUI shipped first. As an LLM agent, you should install and use <strong><code>jsm-cli</code></strong> — the non-interactive JSON CLI. Never run <code>jsm-tui</code> from an agent context: it opens a Bubbletea TUI that needs interactive keyboard input you can't provide.</p>
+</blockquote>
+<p>This guide is for <strong>AI coding agents</strong> (Claude Code, Cursor, Codex, Aider, pi, custom harnesses) installing <code>jsm-cli</code> on behalf of a user for the first time.</p>
+<p>If you're a human, see <a href="../README.md">README.md</a>.</p>
+<h2 id="what-this-is">What this is<a class="headerlink" href="#what-this-is" title="Permanent link">&para;</a></h2>
+<p><code>jsm-cli</code> is a non-interactive JSON CLI for Jira Service Management. The agent shells out to it. It outputs JSON to stdout, errors to stderr, exits non-zero on failure.</p>
+<p>Sister binary to <code>jsm-tui</code> (interactive TUI for humans — DO NOT install or run as an agent). Same config, same API client, completely different invocation model.</p>
+<h2 id="install-flow-run-once-per-system">Install flow (run once per system)<a class="headerlink" href="#install-flow-run-once-per-system" title="Permanent link">&para;</a></h2>
+<p>The first time an agent encounters this tool on a system, walk the user through these six steps. Subsequent sessions skip to "Verify" and use the installed skill.</p>
+<h3 id="step-1-install-the-binary">Step 1 — install the binary<a class="headerlink" href="#step-1-install-the-binary" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>go<span class="w"> </span>install<span class="w"> </span>github.com/arch-err/jsm-tui/cmd/jsm-cli@latest
+</code></pre></div>
+<p>Confirm:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>jsm-cli
+</code></pre></div>
+<p>If <code>go</code> isn't installed, point the user at the <a href="https://github.com/arch-err/jsm-tui/releases">releases page</a> for prebuilt binaries.</p>
+<h3 id="step-2-ask-the-user-the-bootstrap-questions">Step 2 — ask the user the bootstrap questions<a class="headerlink" href="#step-2-ask-the-user-the-bootstrap-questions" title="Permanent link">&para;</a></h3>
+<p>Collect every value below. Some are written to the config file, some are substituted into the skill, some get persisted in the agent's own memory.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Question to ask</th>
+<th>Used in</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>__JIRA_URL__</code></td>
+<td>"What's your Jira URL?"</td>
+<td>config + skill</td>
+<td><code>https://jira.example.com</code></td>
+</tr>
+<tr>
+<td>auth type</td>
+<td>"Personal Access Token (PAT) or basic auth?" — recommend PAT</td>
+<td>config</td>
+<td><code>pat</code></td>
+</tr>
+<tr>
+<td><code>__JIRA_TOKEN__</code></td>
+<td>(PAT only) "What's your token?"</td>
+<td>config only</td>
+<td><code>NjE0MDE1...</code></td>
+</tr>
+<tr>
+<td>basic username</td>
+<td>(basic only) "Your Jira login username?"</td>
+<td>config only</td>
+<td><code>jdoe</code></td>
+</tr>
+<tr>
+<td>basic password</td>
+<td>(basic only) "Your Jira login password?"</td>
+<td>config only</td>
+<td>(sensitive)</td>
+</tr>
+<tr>
+<td><code>__PROJECT_KEY__</code></td>
+<td>"Service desk project key? (the prefix in any issue key — <code>HELP-1234</code> → key is <code>HELP</code>)"</td>
+<td>config + skill</td>
+<td><code>HELP</code></td>
+</tr>
+<tr>
+<td><code>__JIRA_USERNAME__</code></td>
+<td>"Your Jira username or account ID? (used to identify you in tickets)"</td>
+<td>config + skill</td>
+<td><code>jdoe</code> (Server) or <code>5b10ac8d82e05b22cc7d4ef5</code> (Cloud account ID)</td>
+</tr>
+<tr>
+<td><code>__USER_DISPLAY_NAME__</code></td>
+<td>"Your full name as it appears on Jira tickets?"</td>
+<td>skill</td>
+<td><code>Jane Doe</code></td>
+</tr>
+<tr>
+<td>favorite queues</td>
+<td>"Any favorite queue names? (optional, comma-separated)"</td>
+<td>config</td>
+<td><code>Main, Assigned to me</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Never substitute the token or password into the skill.</strong> Secrets stay in the config file only.</p>
+<h3 id="step-3-write-the-config-file">Step 3 — write the config file<a class="headerlink" href="#step-3-write-the-config-file" title="Permanent link">&para;</a></h3>
+<p>Write <code>~/.config/jsm-tui/config.yaml</code> with mode <code>0600</code> (file holds the token):</p>
+<p>For PAT auth:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;__JIRA_URL__&gt;</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nt">auth</span><span class="p">:</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pat</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;__JIRA_TOKEN__&gt;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;__PROJECT_KEY__&gt;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;__JIRA_USERNAME__&gt;</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nt">queues</span><span class="p">:</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">favorites</span><span class="p">:</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;queue 1&gt;</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;queue 2&gt;</span>
+</code></pre></div>
+<p>For basic auth:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;__JIRA_URL__&gt;</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">auth</span><span class="p">:</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">basic</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;basic username&gt;</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;basic password&gt;</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;__PROJECT_KEY__&gt;</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;__JIRA_USERNAME__&gt;</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nt">queues</span><span class="p">:</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="nt">favorites</span><span class="p">:</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;queue 1&gt;</span>
+</code></pre></div>
+<p>After writing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>chmod<span class="w"> </span><span class="m">600</span><span class="w"> </span>~/.config/jsm-tui/config.yaml
+</code></pre></div>
+<h3 id="step-4-install-the-skill-template-substitution">Step 4 — install the skill (template substitution)<a class="headerlink" href="#step-4-install-the-skill-template-substitution" title="Permanent link">&para;</a></h3>
+<p>Download the skill template:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/arch-err/jsm-tui/main/skill/SKILL.md<span class="w"> </span>-o<span class="w"> </span>/tmp/jsm-skill-template.md
+</code></pre></div>
+<p>Or use <code>skill/SKILL.md</code> directly if you have a local clone of the repo.</p>
+<p>Substitute the placeholders with the user's values:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>sed<span class="w"> </span>-i<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>-e<span class="w"> </span><span class="s2">&quot;s|__JIRA_URL__|&lt;__JIRA_URL__&gt;|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-e<span class="w"> </span><span class="s2">&quot;s|__PROJECT_KEY__|&lt;__PROJECT_KEY__&gt;|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span>-e<span class="w"> </span><span class="s2">&quot;s|__JIRA_USERNAME__|&lt;__JIRA_USERNAME__&gt;|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span>-e<span class="w"> </span><span class="s2">&quot;s|__USER_DISPLAY_NAME__|&lt;__USER_DISPLAY_NAME__&gt;|g&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span>/tmp/jsm-skill-template.md
+</code></pre></div>
+<p>Verify no placeholders remain:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;__[A-Z_]+__&#39;</span><span class="w"> </span>/tmp/jsm-skill-template.md<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;MISSING SUBSTITUTIONS&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span>
+</code></pre></div>
+<p>Save the customized skill to wherever your harness loads instruction files from:</p>
+<table>
+<thead>
+<tr>
+<th>Harness</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude Code</td>
+<td><code>~/.claude/skills/jsm/SKILL.md</code></td>
+</tr>
+<tr>
+<td>Claude Code (workspace)</td>
+<td><code>.claude/skills/jsm/SKILL.md</code> in the project</td>
+</tr>
+<tr>
+<td>Cursor</td>
+<td><code>.cursor/rules/jsm.mdc</code> in the project</td>
+</tr>
+<tr>
+<td>Codex</td>
+<td><code>~/.codex/skills/jsm/SKILL.md</code></td>
+</tr>
+<tr>
+<td>Aider</td>
+<td><code>~/.config/aider/jsm-skill.md</code> (manual reference)</td>
+</tr>
+<tr>
+<td>Other</td>
+<td>whatever your platform reads instruction files from</td>
+</tr>
+</tbody>
+</table>
+<p>If your harness has no skill system, save the customized file somewhere durable and reference it manually each session.</p>
+<h3 id="step-5-verify">Step 5 — verify<a class="headerlink" href="#step-5-verify" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>jsm-cli<span class="w"> </span>me
+</code></pre></div>
+<p>Expect a JSON object with <code>name</code>, <code>displayName</code>, <code>emailAddress</code>. If it errors, see the troubleshooting table below before continuing. Do not proceed with anything else until this works.</p>
+<h3 id="step-6-persist-shorthand-in-agent-memory">Step 6 — persist shorthand in agent memory<a class="headerlink" href="#step-6-persist-shorthand-in-agent-memory" title="Permanent link">&para;</a></h3>
+<p>Beyond the config and the customized skill, write these into the agent's own memory layer (if it has one):</p>
+<ul>
+<li><strong>Project key</strong> — so "my queue" resolves to the right project across sessions.</li>
+<li><strong>Display name + username</strong> — so the agent recognizes self-references.</li>
+<li><strong>Favorite queue names</strong> — for default listings.</li>
+<li><strong>Workflow status names</strong> that are meaningful for this deployment — e.g. "Waiting for support" → initial, "Resolved" → terminal. Build this knowledge as the tool gets used.</li>
+</ul>
+<p>Memory persists what the skill doesn't — running notes, edge cases, workflow specifics learned over time.</p>
+<h2 id="re-bootstrap">Re-bootstrap<a class="headerlink" href="#re-bootstrap" title="Permanent link">&para;</a></h2>
+<p>If the user moves Jira instances, rotates a PAT, or changes default project:</p>
+<ol>
+<li>Re-run <strong>steps 2 and 3</strong> to overwrite <code>~/.config/jsm-tui/config.yaml</code>.</li>
+<li>Re-run <strong>step 4</strong> to update the installed skill with new placeholders.</li>
+<li>Re-run <strong>step 5</strong> to verify.</li>
+</ol>
+<p>The CLI does not cache anything outside the config file, so the rewrite is sufficient.</p>
+<h2 id="after-install">After install<a class="headerlink" href="#after-install" title="Permanent link">&para;</a></h2>
+<p>Use the customized skill (loaded by the harness) for ongoing work. It contains the substituted user values and behavior rules ("when user says 'my', they mean assignee = X").</p>
+<p>This guide (<code>docs/agent-usage.md</code>) is only relevant during install or re-bootstrap.</p>
+<h2 id="troubleshooting-install">Troubleshooting install<a class="headerlink" href="#troubleshooting-install" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>go: command not found</code></td>
+<td>Go not installed</td>
+<td>Install Go: <code>yay -S go</code> (Arch), <code>brew install go</code> (Mac), or <a href="https://go.dev/dl/">go.dev/dl</a></td>
+</tr>
+<tr>
+<td><code>command not found: jsm-cli</code> after install</td>
+<td><code>~/go/bin</code> not in <code>PATH</code></td>
+<td><code>export PATH="$HOME/go/bin:$PATH"</code> (add to shell rc)</td>
+</tr>
+<tr>
+<td><code>jsm-cli me</code> errors with TLS / cert</td>
+<td>Corporate CA not trusted</td>
+<td>Ask user to install corp CA certs system-wide</td>
+</tr>
+<tr>
+<td><code>jsm-cli me</code> errors with proxy / connection refused</td>
+<td>Corporate proxy intercepting</td>
+<td>Ensure Jira host is in <code>NO_PROXY</code> env var</td>
+</tr>
+<tr>
+<td><code>HTTP 401 Unauthorized</code></td>
+<td>Wrong or expired token</td>
+<td>Re-collect step 2, rewrite step 3</td>
+</tr>
+<tr>
+<td><code>HTTP 403 Forbidden</code></td>
+<td>Token valid but lacks project permission</td>
+<td>User issue — escalate to user</td>
+</tr>
+<tr>
+<td>Skill placeholders still visible (<code>__USER_DISPLAY_NAME__</code> etc) in agent context</td>
+<td>Step 4 substitution incomplete</td>
+<td>Re-run step 4 — verify with the <code>grep</code> check</td>
+</tr>
+</tbody>
+</table>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../README.md">README.md</a> — human install + usage</li>
+<li><a href="../skill/SKILL.md">skill/SKILL.md</a> — the templated skill (source of truth for ongoing usage)</li>
+<li><a href="../llms.txt">llms.txt</a> — repo entry-point for LLM-driven discovery</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

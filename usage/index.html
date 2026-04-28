@@ -1,0 +1,1580 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Jira Service Management TUI for browsing queues, viewing tickets, and taking actions from the terminal">
+      
+      
+        <meta name="author" content="arch-err">
+      
+      
+        <link rel="canonical" href="https://arch-err.github.io/jsm-tui/usage/">
+      
+      
+        <link rel="prev" href="../configuration/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Usage - jsm-tui</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#usage" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="jsm-tui" class="md-header__button md-logo" aria-label="jsm-tui" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            jsm-tui
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Usage
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/arch-err/jsm-tui" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    arch-err/jsm-tui
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configuration/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Usage
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="jsm-tui" class="md-nav__button md-logo" aria-label="jsm-tui" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    jsm-tui
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/arch-err/jsm-tui" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    arch-err/jsm-tui
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#starting-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting the Application
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#navigation-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigation Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard Shortcuts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Keyboard Shortcuts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#global-keybindings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Keybindings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#navigation-keybindings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigation Keybindings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-detail-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue Detail View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comment-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comment View
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#views-explained" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Views Explained
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Views Explained">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-queue-list-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Queue List View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-issue-list-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Issue List View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-issue-detail-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Issue Detail View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-transition-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Transition View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-comment-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Comment View
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Workflows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Workflows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#viewing-a-ticket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Viewing a Ticket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transitioning-a-ticket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transitioning a Ticket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a Comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#searching-for-an-issue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Searching for an Issue
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tips-tricks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tips &amp; Tricks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tips &amp; Tricks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vim-style-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vim-style Navigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-queue-switching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Queue Switching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refreshing-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refreshing Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboard-only-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard-Only Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#application-hangs-on-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Application Hangs on Startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empty-queue-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty Queue List
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cant-transition-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can't Transition Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comments-not-appearing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comments Not Appearing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#starting-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting the Application
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#navigation-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigation Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard Shortcuts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Keyboard Shortcuts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#global-keybindings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Keybindings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#navigation-keybindings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigation Keybindings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-detail-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue Detail View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comment-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comment View
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#views-explained" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Views Explained
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Views Explained">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-queue-list-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Queue List View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-issue-list-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Issue List View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-issue-detail-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Issue Detail View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-transition-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Transition View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-comment-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Comment View
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Workflows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Workflows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#viewing-a-ticket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Viewing a Ticket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transitioning-a-ticket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transitioning a Ticket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a Comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#searching-for-an-issue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Searching for an Issue
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tips-tricks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tips &amp; Tricks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tips &amp; Tricks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vim-style-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vim-style Navigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-queue-switching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Queue Switching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refreshing-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refreshing Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboard-only-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard-Only Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#application-hangs-on-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Application Hangs on Startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empty-queue-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty Queue List
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cant-transition-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can't Transition Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comments-not-appearing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comments Not Appearing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h1>
+<p>This guide covers how to navigate and use jsm-tui.</p>
+<h2 id="starting-the-application">Starting the Application<a class="headerlink" href="#starting-the-application" title="Permanent link">&para;</a></h2>
+<p>Simply run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>jsm-tui
+</code></pre></div>
+<p>The application will load your configuration from <code>~/.config/jsm-tui/config.yaml</code> and connect to your Jira instance.</p>
+<h2 id="navigation-overview">Navigation Overview<a class="headerlink" href="#navigation-overview" title="Permanent link">&para;</a></h2>
+<p>jsm-tui uses a hierarchical navigation structure:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Queues → Issue List → Issue Detail → Actions
+</code></pre></div>
+<p>You can always go back to the previous view using <span class="keys"><kbd class="key-escape">Esc</kbd></span>.</p>
+<h2 id="keyboard-shortcuts">Keyboard Shortcuts<a class="headerlink" href="#keyboard-shortcuts" title="Permanent link">&para;</a></h2>
+<h3 id="global-keybindings">Global Keybindings<a class="headerlink" href="#global-keybindings" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="keys"><kbd class="key-q">Q</kbd></span></td>
+<td>Quit (from queue list view only)</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-c">C</kbd></span></td>
+<td>Force quit from anywhere</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-escape">Esc</kbd></span></td>
+<td>Go back to previous view / Cancel action</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-r">R</kbd></span></td>
+<td>Refresh current view</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-question">?</kbd></span></td>
+<td>Toggle help (coming soon)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="navigation-keybindings">Navigation Keybindings<a class="headerlink" href="#navigation-keybindings" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="keys"><kbd class="key-arrow-up">Up</kbd></span> / <span class="keys"><kbd class="key-k">K</kbd></span></td>
+<td>Move selection up</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-arrow-down">Down</kbd></span> / <span class="keys"><kbd class="key-j">J</kbd></span></td>
+<td>Move selection down</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-enter">Enter</kbd></span></td>
+<td>Select / Open item</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-page-up">Page Up</kbd></span></td>
+<td>Scroll up one page</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-page-down">Page Down</kbd></span></td>
+<td>Scroll down one page</td>
+</tr>
+</tbody>
+</table>
+<h3 id="issue-detail-view">Issue Detail View<a class="headerlink" href="#issue-detail-view" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="keys"><kbd class="key-t">T</kbd></span></td>
+<td>Open transition menu</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-c">C</kbd></span></td>
+<td>Add a comment</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-escape">Esc</kbd></span></td>
+<td>Return to issue list</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-r">R</kbd></span></td>
+<td>Refresh issue details</td>
+</tr>
+</tbody>
+</table>
+<h3 id="comment-view">Comment View<a class="headerlink" href="#comment-view" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-s">S</kbd></span></td>
+<td>Submit comment</td>
+</tr>
+<tr>
+<td><span class="keys"><kbd class="key-escape">Esc</kbd></span></td>
+<td>Cancel and return</td>
+</tr>
+</tbody>
+</table>
+<h2 id="views-explained">Views Explained<a class="headerlink" href="#views-explained" title="Permanent link">&para;</a></h2>
+<h3 id="1-queue-list-view">1. Queue List View<a class="headerlink" href="#1-queue-list-view" title="Permanent link">&para;</a></h3>
+<p>The first view you see after launching jsm-tui.</p>
+<p><strong>Features:</strong>
+- Lists all queues in your Service Desk project
+- Shows queue name
+- Navigate with arrow keys or j/k
+- Press <span class="keys"><kbd class="key-enter">Enter</kbd></span> to open a queue</p>
+<p><strong>Available Actions:</strong>
+- <span class="keys"><kbd class="key-arrow-up">Up</kbd></span> / <span class="keys"><kbd class="key-k">K</kbd></span> - Move selection up
+- <span class="keys"><kbd class="key-arrow-down">Down</kbd></span> / <span class="keys"><kbd class="key-j">J</kbd></span> - Move selection down
+- <span class="keys"><kbd class="key-enter">Enter</kbd></span> - Open selected queue
+- <span class="keys"><kbd class="key-r">R</kbd></span> - Refresh queue list
+- <span class="keys"><kbd class="key-q">Q</kbd></span> - Quit application</p>
+<h3 id="2-issue-list-view">2. Issue List View<a class="headerlink" href="#2-issue-list-view" title="Permanent link">&para;</a></h3>
+<p>Shows all issues in the selected queue.</p>
+<p><strong>Features:</strong>
+- Table view with columns: Key, Summary, Status, Priority, Assignee
+- Color-coded status (blue = open, yellow = in progress, green = done)
+- Color-coded priority (red = high, yellow = medium, blue = low)
+- Truncated text for readability</p>
+<p><strong>Available Actions:</strong>
+- <span class="keys"><kbd class="key-arrow-up">Up</kbd></span> / <span class="keys"><kbd class="key-k">K</kbd></span> - Move selection up
+- <span class="keys"><kbd class="key-arrow-down">Down</kbd></span> / <span class="keys"><kbd class="key-j">J</kbd></span> - Move selection down
+- <span class="keys"><kbd class="key-enter">Enter</kbd></span> - Open issue details
+- <span class="keys"><kbd class="key-escape">Esc</kbd></span> - Return to queue list
+- <span class="keys"><kbd class="key-r">R</kbd></span> - Refresh issue list</p>
+<h3 id="3-issue-detail-view">3. Issue Detail View<a class="headerlink" href="#3-issue-detail-view" title="Permanent link">&para;</a></h3>
+<p>Displays complete information about a single issue.</p>
+<p><strong>Features:</strong>
+- Issue key and summary
+- Status, priority, assignee, reporter
+- Issue type
+- Creation and update timestamps
+- Full description
+- All comments with authors and timestamps
+- Scrollable viewport for long content</p>
+<p><strong>Available Actions:</strong>
+- <span class="keys"><kbd class="key-arrow-up">Up</kbd></span> / <span class="keys"><kbd class="key-k">K</kbd></span> / <span class="keys"><kbd class="key-arrow-down">Down</kbd></span> / <span class="keys"><kbd class="key-j">J</kbd></span> - Scroll content
+- <span class="keys"><kbd class="key-page-up">Page Up</kbd></span> / <span class="keys"><kbd class="key-page-down">Page Down</kbd></span> - Scroll by page
+- <span class="keys"><kbd class="key-t">T</kbd></span> - Open transition menu
+- <span class="keys"><kbd class="key-c">C</kbd></span> - Add a comment
+- <span class="keys"><kbd class="key-escape">Esc</kbd></span> - Return to issue list
+- <span class="keys"><kbd class="key-r">R</kbd></span> - Refresh issue details</p>
+<h3 id="4-transition-view">4. Transition View<a class="headerlink" href="#4-transition-view" title="Permanent link">&para;</a></h3>
+<p>Select and execute workflow transitions.</p>
+<p><strong>Features:</strong>
+- Lists all available transitions for the current issue
+- Shows transition name and target status
+- Execute transitions to move issues through workflow</p>
+<p><strong>Available Actions:</strong>
+- <span class="keys"><kbd class="key-arrow-up">Up</kbd></span> / <span class="keys"><kbd class="key-k">K</kbd></span> - Move selection up
+- <span class="keys"><kbd class="key-arrow-down">Down</kbd></span> / <span class="keys"><kbd class="key-j">J</kbd></span> - Move selection down
+- <span class="keys"><kbd class="key-enter">Enter</kbd></span> - Execute selected transition
+- <span class="keys"><kbd class="key-escape">Esc</kbd></span> - Cancel and return to issue detail</p>
+<h3 id="5-comment-view">5. Comment View<a class="headerlink" href="#5-comment-view" title="Permanent link">&para;</a></h3>
+<p>Add comments to issues.</p>
+<p><strong>Features:</strong>
+- Multi-line text input
+- Submit comments to the issue</p>
+<p><strong>Available Actions:</strong>
+- Type your comment
+- <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-s">S</kbd></span> - Submit comment
+- <span class="keys"><kbd class="key-escape">Esc</kbd></span> - Cancel and return to issue detail</p>
+<h2 id="common-workflows">Common Workflows<a class="headerlink" href="#common-workflows" title="Permanent link">&para;</a></h2>
+<h3 id="viewing-a-ticket">Viewing a Ticket<a class="headerlink" href="#viewing-a-ticket" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Launch jsm-tui</li>
+<li>Navigate to desired queue using <span class="keys"><kbd class="key-arrow-down">Down</kbd></span> / <span class="keys"><kbd class="key-j">J</kbd></span></li>
+<li>Press <span class="keys"><kbd class="key-enter">Enter</kbd></span> to open the queue</li>
+<li>Navigate to desired issue using <span class="keys"><kbd class="key-arrow-down">Down</kbd></span> / <span class="keys"><kbd class="key-j">J</kbd></span></li>
+<li>Press <span class="keys"><kbd class="key-enter">Enter</kbd></span> to view issue details</li>
+<li>Scroll through description and comments</li>
+</ol>
+<h3 id="transitioning-a-ticket">Transitioning a Ticket<a class="headerlink" href="#transitioning-a-ticket" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Open issue details (see above)</li>
+<li>Press <span class="keys"><kbd class="key-t">T</kbd></span> to open transition menu</li>
+<li>Navigate to desired transition</li>
+<li>Press <span class="keys"><kbd class="key-enter">Enter</kbd></span> to execute</li>
+<li>Issue details refresh automatically with new status</li>
+</ol>
+<h3 id="adding-a-comment">Adding a Comment<a class="headerlink" href="#adding-a-comment" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Open issue details (see above)</li>
+<li>Press <span class="keys"><kbd class="key-c">C</kbd></span> to open comment view</li>
+<li>Type your comment</li>
+<li>Press <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-s">S</kbd></span> to submit</li>
+<li>Issue details refresh automatically with new comment</li>
+</ol>
+<h3 id="searching-for-an-issue">Searching for an Issue<a class="headerlink" href="#searching-for-an-issue" title="Permanent link">&para;</a></h3>
+<p>Currently, jsm-tui doesn't have built-in search. To find an issue:</p>
+<ol>
+<li>Navigate to the appropriate queue</li>
+<li>Issues are listed in the order returned by Jira</li>
+<li>Use <span class="keys"><kbd class="key-j">J</kbd></span> / <span class="keys"><kbd class="key-k">K</kbd></span> to scroll through the list</li>
+<li>Look for the issue key or summary</li>
+</ol>
+<h2 id="tips-tricks">Tips &amp; Tricks<a class="headerlink" href="#tips-tricks" title="Permanent link">&para;</a></h2>
+<h3 id="vim-style-navigation">Vim-style Navigation<a class="headerlink" href="#vim-style-navigation" title="Permanent link">&para;</a></h3>
+<p>If you're familiar with Vim, jsm-tui uses similar keybindings:</p>
+<ul>
+<li><span class="keys"><kbd class="key-j">J</kbd></span> = down</li>
+<li><span class="keys"><kbd class="key-k">K</kbd></span> = up</li>
+<li><span class="keys"><kbd class="key-escape">Esc</kbd></span> = back/cancel</li>
+</ul>
+<h3 id="quick-queue-switching">Quick Queue Switching<a class="headerlink" href="#quick-queue-switching" title="Permanent link">&para;</a></h3>
+<p>To switch queues quickly:</p>
+<ol>
+<li>From issue list: press <span class="keys"><kbd class="key-escape">Esc</kbd></span> to return to queues</li>
+<li>Navigate to new queue</li>
+<li>Press <span class="keys"><kbd class="key-enter">Enter</kbd></span> to open it</li>
+</ol>
+<h3 id="refreshing-data">Refreshing Data<a class="headerlink" href="#refreshing-data" title="Permanent link">&para;</a></h3>
+<p>If you make changes in Jira's web UI or another client, press <span class="keys"><kbd class="key-r">R</kbd></span> to refresh the current view and see the latest data.</p>
+<h3 id="keyboard-only-workflow">Keyboard-Only Workflow<a class="headerlink" href="#keyboard-only-workflow" title="Permanent link">&para;</a></h3>
+<p>jsm-tui is designed for keyboard-only operation:</p>
+<ul>
+<li>No mouse required</li>
+<li>Fast navigation with j/k keys</li>
+<li>All actions accessible via keyboard shortcuts</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="application-hangs-on-startup">Application Hangs on Startup<a class="headerlink" href="#application-hangs-on-startup" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Check your network connection</li>
+<li>Verify your Jira URL in the config is correct</li>
+<li>Ensure your credentials are valid</li>
+</ul>
+<h3 id="empty-queue-list">Empty Queue List<a class="headerlink" href="#empty-queue-list" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Verify the project key in your config</li>
+<li>Ensure your user has access to the Service Desk project</li>
+<li>Check that queues exist in the project</li>
+</ul>
+<h3 id="cant-transition-issues">Can't Transition Issues<a class="headerlink" href="#cant-transition-issues" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Verify your user has permission to transition issues</li>
+<li>Ensure the issue type supports the desired transition</li>
+<li>Check workflow configuration in Jira</li>
+</ul>
+<h3 id="comments-not-appearing">Comments Not Appearing<a class="headerlink" href="#comments-not-appearing" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Wait a moment and press <span class="keys"><kbd class="key-r">R</kbd></span> to refresh</li>
+<li>Verify the comment was submitted successfully</li>
+<li>Check Jira's web UI to confirm the comment exists</li>
+</ul>
+<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Explore the <a href="../configuration/">configuration options</a></li>
+<li>Check the <a href="https://github.com/arch-err/jsm-tui">GitHub repository</a> for updates</li>
+<li>Report issues or request features on GitHub</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
