@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-28
+
 ### Added
 - New `jsm-cli` binary — non-interactive JSON CLI cousin of `jsm-tui` for use from agents and scripts. Shares config and API client with the TUI.
 - `cmd/jsm-cli/main.go` exposing 8 subcommands: `me`, `queues`, `queue`, `issue`, `transitions`, `comment`, `transition`, `assign`. JSON output to stdout, errors to stderr, non-zero exit on failure.
