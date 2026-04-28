@@ -40,7 +40,7 @@ Collect every value below. Some are written to the config file, some are substit
 | basic username | (basic only) "Your Jira login username?" | config only | `jdoe` |
 | basic password | (basic only) "Your Jira login password?" | config only | (sensitive) |
 | `__PROJECT_KEY__` | "Service desk project key? (the prefix in any issue key — `HELP-1234` → key is `HELP`)" | config + skill | `HELP` |
-| `__JIRA_USERNAME__` | "Your Jira username or account ID? (used to identify you in tickets)" | config + skill | `jdoe` or `66140156` |
+| `__JIRA_USERNAME__` | "Your Jira username or account ID? (used to identify you in tickets)" | config + skill | `jdoe` (Server) or `5b10ac8d82e05b22cc7d4ef5` (Cloud account ID) |
 | `__USER_DISPLAY_NAME__` | "Your full name as it appears on Jira tickets?" | skill | `Jane Doe` |
 | favorite queues | "Any favorite queue names? (optional, comma-separated)" | config | `Main, Assigned to me` |
 
