@@ -9,6 +9,11 @@
 
 A fast, keyboard-driven terminal user interface for Jira Service Management built with Go and [Bubbletea](https://github.com/charmbracelet/bubbletea).
 
+This repository ships **two binaries** built from the same codebase:
+
+- **`jsm-tui`** — interactive TUI for humans.
+- **`jsm-cli`** — non-interactive JSON CLI for agents and scripts. Agents install via [docs/agent-usage.md](docs/agent-usage.md) (six-step flow: install binary → bootstrap config → customize the skill template at [skill/SKILL.md](skill/SKILL.md) → verify → persist). Discoverable via [`llms.txt`](llms.txt) at the repo root.
+
 ## Features
 
 - 📋 **Queue Browsing** - View all Service Desk queues
@@ -29,7 +34,11 @@ Download the latest release from the [releases page](https://github.com/arch-err
 ### Using Go
 
 ```bash
-go install github.com/arch-err/jsm-tui@latest
+# TUI
+go install github.com/arch-err/jsm-tui/cmd/jsm-tui@latest
+
+# CLI (for agents/scripts)
+go install github.com/arch-err/jsm-tui/cmd/jsm-cli@latest
 ```
 
 ### Build from Source
