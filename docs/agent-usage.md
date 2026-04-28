@@ -1,211 +1,180 @@
-# jsm-cli — agent usage guide
+# jsm-cli — agent install guide
 
-Non-interactive JSON CLI for Jira Service Management. Read tickets, list queues, transition states, comment, assign — all from the shell, all output as JSON to stdout.
+This guide is for **AI coding agents** (Claude Code, Cursor, Codex, Aider, pi, custom harnesses) installing `jsm-cli` on behalf of a user for the first time.
 
-Sister binary to `jsm-tui` (interactive TUI). Both share the same config file and the same internal API client. If `jsm-tui` works against your Jira, `jsm-cli` will too.
+If you're a human, see [README.md](../README.md).
 
-## Bootstrap (first install)
+## What this is
 
-When an agent encounters `jsm-cli` for the first time on a new system, walk the user through this flow before invoking any command. The answers populate `~/.config/jsm-tui/config.yaml` and feed back into the agent's own memory for future sessions.
+`jsm-cli` is a non-interactive JSON CLI for Jira Service Management. The agent shells out to it. It outputs JSON to stdout, errors to stderr, exits non-zero on failure.
 
-### Questions to ask the user
+Sister binary to `jsm-tui` (interactive TUI for humans). Same config, same API client.
 
-| # | Question | Notes |
-|---|---|---|
-| 1 | What's your Jira URL? | e.g. `https://jira.example.com`. Trailing slashes are fine — they're stripped. |
-| 2 | PAT or basic auth? | PAT recommended for Jira Server / Data Center. Basic only if PAT is unavailable. |
-| 3 | (PAT) What's your token? | Generated in Jira under user profile → Personal Access Tokens. |
-| 3 | (basic) Username + password? | Storing a password in plaintext config — only if PAT isn't an option. |
-| 4 | Service desk project key? | The prefix in any issue key. `HELP-1234` → key is `HELP`. |
-| 5 | What's your Jira username / account ID? | Used to identify "me" in queue listings. Optional but useful. |
-| 6 | Any favorite queue names? | Optional. Pinned in TUI; useful for the agent to know default reading targets. |
+## Install flow (run once per system)
 
-### What the agent writes
+The first time an agent encounters this tool on a system, walk the user through these six steps. Subsequent sessions skip to "Verify" and use the installed skill.
 
-After collecting answers, write `~/.config/jsm-tui/config.yaml` with mode `0600` (file contains a token):
-
-```yaml
-url: <answer 1>
-auth:
-  type: pat            # or 'basic'
-  token: <answer 3>    # if pat
-  # username: <answer 3a>   # if basic
-  # password: <answer 3b>   # if basic
-project: <answer 4>
-username: <answer 5>   # optional, omit if not given
-queues:
-  favorites:           # optional, omit if not given
-    - <answer 6 name 1>
-    - <answer 6 name 2>
-```
-
-### Verify connectivity
-
-```bash
-jsm-cli me
-```
-
-Expect a JSON object with `name`, `displayName`, `emailAddress`. If this errors, fix before continuing — use the [Troubleshooting](#troubleshooting) table below to map error → cause.
-
-### What the agent persists in its own memory
-
-Separate from the config file, the agent should remember:
-
-- **Project key** — so user phrases like "my queue" resolve to the right project without re-asking.
-- **Display name + username** — so the agent recognizes self-references in tickets ("assigned to me", "I commented on", etc).
-- **Favorite queue names** — for default listings when no queue is specified.
-- **Workflow status names** that are meaningful in this user's deployment — e.g. "Waiting for support" → initial, "Resolved" → terminal. Build this knowledge as the agent uses the tool.
-
-These live in the agent's memory layer, not in the repo. The repo skill stays generic; per-user knowledge stays per-user.
-
-### Re-bootstrap
-
-If the user later moves Jira instances, rotates a PAT, or changes default project, re-run the flow and overwrite `~/.config/jsm-tui/config.yaml`. The CLI does not cache anything outside that file, so the rewrite is sufficient. Update the agent's memory layer to match.
-
-## Install
-
-### Via Go
+### Step 1 — install the binary
 
 ```bash
 go install github.com/arch-err/jsm-tui/cmd/jsm-cli@latest
 ```
 
-Binary lands at `$GOPATH/bin/jsm-cli` (default `~/go/bin/jsm-cli`). Make sure that's on your `PATH`.
-
-### Pre-built binary
-
-Download the latest release archive from the [releases page](https://github.com/arch-err/jsm-tui/releases). Each archive contains both `jsm-tui` and `jsm-cli`.
-
-### From source
+Confirm:
 
 ```bash
-git clone https://github.com/arch-err/jsm-tui.git
-cd jsm-tui
-go build -o jsm-cli ./cmd/jsm-cli
+command -v jsm-cli
 ```
 
-## Configure
+If `go` isn't installed, point the user at the [releases page](https://github.com/arch-err/jsm-tui/releases) for prebuilt binaries.
 
-`jsm-cli` reads `~/.config/jsm-tui/config.yaml` — the same file `jsm-tui` uses. If you've already configured `jsm-tui`, there is nothing to do.
+### Step 2 — ask the user the bootstrap questions
 
-Minimal config:
+Collect every value below. Some are written to the config file, some are substituted into the skill, some get persisted in the agent's own memory.
+
+| Variable | Question to ask | Used in | Example |
+|---|---|---|---|
+| `__JIRA_URL__` | "What's your Jira URL?" | config + skill | `https://jira.example.com` |
+| auth type | "Personal Access Token (PAT) or basic auth?" — recommend PAT | config | `pat` |
+| `__JIRA_TOKEN__` | (PAT only) "What's your token?" | config only | `NjE0MDE1...` |
+| basic username | (basic only) "Your Jira login username?" | config only | `jdoe` |
+| basic password | (basic only) "Your Jira login password?" | config only | (sensitive) |
+| `__PROJECT_KEY__` | "Service desk project key? (the prefix in any issue key — `HELP-1234` → key is `HELP`)" | config + skill | `HELP` |
+| `__JIRA_USERNAME__` | "Your Jira username or account ID? (used to identify you in tickets)" | config + skill | `jdoe` or `66140156` |
+| `__USER_DISPLAY_NAME__` | "Your full name as it appears on Jira tickets?" | skill | `Jane Doe` |
+| favorite queues | "Any favorite queue names? (optional, comma-separated)" | config | `Main, Assigned to me` |
+
+**Never substitute the token or password into the skill.** Secrets stay in the config file only.
+
+### Step 3 — write the config file
+
+Write `~/.config/jsm-tui/config.yaml` with mode `0600` (file holds the token):
+
+For PAT auth:
 
 ```yaml
-url: https://your-jira-instance.com
+url: <__JIRA_URL__>
 auth:
-  type: pat            # or 'basic'
-  token: <your-PAT>
-project: HELP          # service desk project key
+  type: pat
+  token: <__JIRA_TOKEN__>
+project: <__PROJECT_KEY__>
+username: <__JIRA_USERNAME__>
+queues:
+  favorites:
+    - <queue 1>
+    - <queue 2>
 ```
 
-For basic auth, replace `token` with `username` and `password`. See [docs/configuration.md](configuration.md) for the full schema.
+For basic auth:
 
-## Verify
+```yaml
+url: <__JIRA_URL__>
+auth:
+  type: basic
+  username: <basic username>
+  password: <basic password>
+project: <__PROJECT_KEY__>
+username: <__JIRA_USERNAME__>
+queues:
+  favorites:
+    - <queue 1>
+```
+
+After writing:
+
+```bash
+chmod 600 ~/.config/jsm-tui/config.yaml
+```
+
+### Step 4 — install the skill (template substitution)
+
+Download the skill template:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/arch-err/jsm-tui/main/skill/SKILL.md -o /tmp/jsm-skill-template.md
+```
+
+Or use `skill/SKILL.md` directly if you have a local clone of the repo.
+
+Substitute the placeholders with the user's values:
+
+```bash
+sed -i \
+  -e "s|__JIRA_URL__|<__JIRA_URL__>|g" \
+  -e "s|__PROJECT_KEY__|<__PROJECT_KEY__>|g" \
+  -e "s|__JIRA_USERNAME__|<__JIRA_USERNAME__>|g" \
+  -e "s|__USER_DISPLAY_NAME__|<__USER_DISPLAY_NAME__>|g" \
+  /tmp/jsm-skill-template.md
+```
+
+Verify no placeholders remain:
+
+```bash
+grep -E '__[A-Z_]+__' /tmp/jsm-skill-template.md && echo "MISSING SUBSTITUTIONS" || echo "ok"
+```
+
+Save the customized skill to wherever your harness loads instruction files from:
+
+| Harness | Path |
+|---|---|
+| Claude Code | `~/.claude/skills/jsm/SKILL.md` |
+| Claude Code (workspace) | `.claude/skills/jsm/SKILL.md` in the project |
+| Cursor | `.cursor/rules/jsm.mdc` in the project |
+| Codex | `~/.codex/skills/jsm/SKILL.md` |
+| Aider | `~/.config/aider/jsm-skill.md` (manual reference) |
+| Other | whatever your platform reads instruction files from |
+
+If your harness has no skill system, save the customized file somewhere durable and reference it manually each session.
+
+### Step 5 — verify
 
 ```bash
 jsm-cli me
 ```
 
-Should print a JSON object describing the authenticated user. If it errors, fix auth/connectivity before continuing.
+Expect a JSON object with `name`, `displayName`, `emailAddress`. If it errors, see the troubleshooting table below before continuing. Do not proceed with anything else until this works.
 
-## Commands
+### Step 6 — persist shorthand in agent memory
 
-All commands print JSON to stdout. Write commands are silent on success and exit non-zero on failure (errors to stderr).
+Beyond the config and the customized skill, write these into the agent's own memory layer (if it has one):
 
-| Command | Reads | Writes | Description |
-|---|---|---|---|
-| `me` | yes | no | Current authenticated user |
-| `queues` | yes | no | List all service desk queues for the configured project |
-| `queue <name>` | yes | no | List issues in a queue (case-insensitive name match) |
-| `issue <KEY>` | yes | no | Full issue details (comments embedded in `fields.comment`) |
-| `transitions <KEY>` | yes | no | Available workflow transitions for an issue |
-| `comment <KEY> <body>` | no | yes | Add a comment (`--internal` for internal-only) |
-| `transition <KEY> <status>` | no | yes | Transition issue to target status by name |
-| `assign <KEY> <user>` | no | yes | Assign to user (`--unassign` to clear) |
+- **Project key** — so "my queue" resolves to the right project across sessions.
+- **Display name + username** — so the agent recognizes self-references.
+- **Favorite queue names** — for default listings.
+- **Workflow status names** that are meaningful for this deployment — e.g. "Waiting for support" → initial, "Resolved" → terminal. Build this knowledge as the tool gets used.
 
-### Flags
+Memory persists what the skill doesn't — running notes, edge cases, workflow specifics learned over time.
 
-- `comment --internal` — post an internal-only comment (not visible to the requester on the customer portal).
-- `queue --start N --limit M` — paginate. Defaults: `start=0 limit=50`.
-- `assign --unassign` — clear the assignee. Username arg is then optional.
+## Re-bootstrap
 
-## Patterns for agents
+If the user moves Jira instances, rotates a PAT, or changes default project:
 
-### Read-before-write
+1. Re-run **steps 2 and 3** to overwrite `~/.config/jsm-tui/config.yaml`.
+2. Re-run **step 4** to update the installed skill with new placeholders.
+3. Re-run **step 5** to verify.
 
-Workflows are state-dependent. Always list available transitions before transitioning:
+The CLI does not cache anything outside the config file, so the rewrite is sufficient.
 
-```bash
-jsm-cli transitions HELP-1234
-# inspect the JSON, pick a "to.name" target
-jsm-cli transition HELP-1234 "In Progress"
-```
+## After install
 
-The `transition` command matches by **target status name** (the `to.name` field in `transitions` output), not by the transition's own name.
+Use the customized skill (loaded by the harness) for ongoing work. It contains the substituted user values and behavior rules ("when user says 'my', they mean assignee = X").
 
-### Composing with jq
+This guide (`docs/agent-usage.md`) is only relevant during install or re-bootstrap.
 
-Output is consistent JSON, pipe freely:
+## Troubleshooting install
 
-```bash
-# All open issue keys in the "Main" queue
-jsm-cli queue "Main" --limit 50 | jq -r '.[].key'
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `go: command not found` | Go not installed | Install Go: `yay -S go` (Arch), `brew install go` (Mac), or [go.dev/dl](https://go.dev/dl/) |
+| `command not found: jsm-cli` after install | `~/go/bin` not in `PATH` | `export PATH="$HOME/go/bin:$PATH"` (add to shell rc) |
+| `jsm-cli me` errors with TLS / cert | Corporate CA not trusted | Ask user to install corp CA certs system-wide |
+| `jsm-cli me` errors with proxy / connection refused | Corporate proxy intercepting | Ensure Jira host is in `NO_PROXY` env var |
+| `HTTP 401 Unauthorized` | Wrong or expired token | Re-collect step 2, rewrite step 3 |
+| `HTTP 403 Forbidden` | Token valid but lacks project permission | User issue — escalate to user |
+| Skill placeholders still visible (`__USER_DISPLAY_NAME__` etc) in agent context | Step 4 substitution incomplete | Re-run step 4 — verify with the `grep` check |
 
-# Just the status of one issue
-jsm-cli issue HELP-1234 | jq -r '.fields.status.name'
+## See also
 
-# All transition target names available right now
-jsm-cli transitions HELP-1234 | jq -r '.[].to.name'
-```
-
-### Error handling
-
-Check exit code on writes:
-
-```bash
-if jsm-cli comment HELP-1234 "investigating" 2>/tmp/err; then
-  echo ok
-else
-  echo "failed: $(cat /tmp/err)"
-fi
-```
-
-Errors are formatted as `error: <message>` on stderr. HTTP errors include status code and response body.
-
-### Internal vs external comments
-
-```bash
-# Visible to the customer (default)
-jsm-cli comment HELP-1234 "We're looking into it."
-
-# Internal note — only visible to staff
-jsm-cli comment HELP-1234 --internal "Likely a duplicate of HELP-1198."
-```
-
-When acting as an agent, prefer `--internal` for thinking-out-loud notes meant for human staff. Reserve customer-visible comments for content the user has explicitly asked to send.
-
-## Conventions an agent should follow
-
-- **Issue keys are project-prefixed**: `HELP-1234`, `FKS-2718`. Keys are case-sensitive in some Jira deployments — pass them exactly as the user gives them.
-- **Stay defensive on writes**: read first, confirm the issue exists and is in the expected state, then write.
-- **Don't bulk-read by default**: `queue` and `queues` can be expensive on busy projects. Prefer `issue <KEY>` when you have a key.
-- **Don't transition without listing**: a transition that worked yesterday may not be available today if the issue moved states.
-- **Idempotency is not guaranteed**: `comment` will create a new comment every time you call it. Don't retry blindly on uncertain failures.
-
-## Limitations
-
-- **Single-project**: the configured `project` is global. To work across projects, swap configs (point `XDG_CONFIG_HOME` at a different dir) or run with a different config file.
-- **No JQL**: there is no arbitrary JQL search command yet. Use queue-by-name.
-- **No bulk operations**: one issue per command.
-- **No MCP server**: this is a plain CLI. Wrap it behind your agent's bash/shell tool, or write a thin MCP layer if you need structured tool-calling.
-
-## Troubleshooting
-
-| Symptom | Likely cause |
-|---|---|
-| `error: failed to read config file` | No config at `~/.config/jsm-tui/config.yaml` — see [Configure](#configure) |
-| `error: HTTP 401` | Token expired, wrong, or wrong auth type for your Jira |
-| `error: HTTP 403` | Token valid but lacks permission on this project/issue |
-| `error: HTTP 404 ... issue` | Issue key wrong, or you don't have read access |
-| `error: queue not found` | Queue name typo — run `jsm-cli queues` to see exact names |
-| `error: no transition to status "X" available` | Workflow doesn't allow that transition from current state — run `transitions <KEY>` to see valid targets |
+- [README.md](../README.md) — human install + usage
+- [skill/SKILL.md](../skill/SKILL.md) — the templated skill (source of truth for ongoing usage)
+- [llms.txt](../llms.txt) — repo entry-point for LLM-driven discovery

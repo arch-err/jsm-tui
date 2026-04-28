@@ -12,7 +12,7 @@ A fast, keyboard-driven terminal user interface for Jira Service Management buil
 This repository ships **two binaries** built from the same codebase:
 
 - **`jsm-tui`** — interactive TUI for humans.
-- **`jsm-cli`** — non-interactive JSON CLI for agents and scripts. See [docs/agent-usage.md](docs/agent-usage.md) for the agent-facing guide. Discoverable via the [`llms.txt`](llms.txt) entry-point file.
+- **`jsm-cli`** — non-interactive JSON CLI for agents and scripts. Agents install via [docs/agent-usage.md](docs/agent-usage.md) (six-step flow: install binary → bootstrap config → customize the skill template at [skill/SKILL.md](skill/SKILL.md) → verify → persist). Discoverable via [`llms.txt`](llms.txt) at the repo root.
 
 ## Features
 

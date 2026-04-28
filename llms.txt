@@ -4,7 +4,8 @@
 
 ## For LLMs and agents
 
-- [Agent usage guide](docs/agent-usage.md): full guide. Start here. Includes the **Bootstrap (first install)** flow — site-specific questions to ask the user, the config file to write, the verification step, and what to persist in agent memory. Read before invoking any command on a new system.
+- [Agent install guide](docs/agent-usage.md): **start here on first encounter.** Six-step install flow — collect bootstrap values from the user, write config, install + customize the skill template, verify, persist memory. Self-contained for any harness (Claude, Cursor, Codex, Aider, pi).
+- [Skill template](skill/SKILL.md): templated skill with `__PLACEHOLDER__` markers. The install guide tells the agent how to download this, substitute the user's values, and save the result to the harness's skills location. After install, this is the day-to-day reference — generic on disk, personalized per user via substitution.
 - [CLI source](cmd/jsm-cli/main.go): single-file cobra-based JSON CLI.
 
 ## For humans
