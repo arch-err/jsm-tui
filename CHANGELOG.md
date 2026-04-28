@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- New `jsm-cli` binary — non-interactive JSON CLI cousin of `jsm-tui` for use from agents and scripts. Shares config and API client with the TUI.
+- `cmd/jsm-cli/main.go` exposing 8 subcommands: `me`, `queues`, `queue`, `issue`, `transitions`, `comment`, `transition`, `assign`. JSON output to stdout, errors to stderr, non-zero exit on failure.
+- `llms.txt` at the repo root following the [llms.txt](https://llmstxt.org/) standard for LLM-discoverable project entry-point.
+- `docs/agent-usage.md` — full LLM/agent usage guide for `jsm-cli` (install, configure, command reference, patterns, troubleshooting).
+- `.goreleaser.yaml`: second build target for `jsm-cli`; release archives now bundle both binaries.
+
 ## [0.2.0] - 2026-01-28
 
 ### Added

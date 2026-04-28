@@ -1,0 +1,24 @@
+# jsm-tui
+
+> Jira Service Management toolkit for the terminal. Two binaries from one codebase: `jsm-tui` (interactive TUI for humans) and `jsm-cli` (non-interactive JSON CLI for agents and scripts). Written in Go. Targets Jira Data Center / Server with PAT or basic auth.
+
+## For LLMs and agents
+
+- [Agent usage guide](docs/agent-usage.md): full guide. Start here. Includes the **Bootstrap (first install)** flow — site-specific questions to ask the user, the config file to write, the verification step, and what to persist in agent memory. Read before invoking any command on a new system.
+- [CLI source](cmd/jsm-cli/main.go): single-file cobra-based JSON CLI.
+
+## For humans
+
+- [Installation](docs/installation.md): platform-specific install steps.
+- [Configuration](docs/configuration.md): config file format and options.
+- [Usage](docs/usage.md): keyboard shortcuts, navigation, common flows.
+
+## Reference
+
+- [README](README.md): project overview and feature list.
+- [Changelog](CHANGELOG.md): version history.
+- [GitHub repository](https://github.com/arch-err/jsm-tui): source and issues.
+
+## Optional
+
+- [Contributing](README.md#contributing): development setup, commit conventions.
