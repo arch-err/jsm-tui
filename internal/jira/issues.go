@@ -25,8 +25,43 @@ type IssueFields struct {
 	Updated             string              `json:"updated"`
 	IssueType           IssueType           `json:"issuetype"`
 	Comment             CommentList         `json:"comment,omitempty"`
+	Attachment          []Attachment         `json:"attachment,omitempty"`
 	RequestParticipants []User              `json:"customfield_10000,omitempty"` // Request participants
 	CustomerRequestType *CustomerRequestType `json:"customfield_10001,omitempty"` // Service request type
+}
+
+// Attachment represents a file attached to an issue
+type Attachment struct {
+	ID       string `json:"id"`
+	Filename string `json:"filename"`
+	Size     int64  `json:"size"`
+	MimeType string `json:"mimeType"`
+	Content  string `json:"content"` // download URL
+	Author   *User  `json:"author,omitempty"`
+	Created  string `json:"created"`
+}
+
+// IssueDetail is an enriched issue with proforma forms included
+type IssueDetail struct {
+	Issue
+	ProformaForms []ProformaForm `json:"proformaForms,omitempty"`
+}
+
+// GetIssueDetail fetches an issue with proforma forms and attachments
+func (c *Client) GetIssueDetail(issueKey string) (*IssueDetail, error) {
+	issue, err := c.GetIssue(issueKey)
+	if err != nil {
+		return nil, err
+	}
+
+	detail := &IssueDetail{Issue: *issue}
+
+	forms, err := c.GetProformaForms(issueKey)
+	if err == nil && forms != nil {
+		detail.ProformaForms = forms
+	}
+
+	return detail, nil
 }
 
 // CustomerRequestType represents the JSM request type

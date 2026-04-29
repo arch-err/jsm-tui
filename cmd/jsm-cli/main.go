@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -12,14 +14,18 @@ import (
 	"github.com/arch-err/jsm-tui/internal/jira"
 )
 
+var outputFormat string
+
 func main() {
 	root := &cobra.Command{
 		Use:           "jsm-cli",
 		Short:         "Non-interactive CLI for Jira Service Management",
-		Long:          "JSON-output CLI cousin of jsm-tui. Designed for agent and script use.\nReads config from ~/.config/jsm-tui/config.yaml.",
+		Long:          "CLI for Jira Service Management. Clean text output by default, full JSON with -o json.\nReads config from ~/.config/jsm-tui/config.yaml.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
+
+	root.PersistentFlags().StringVarP(&outputFormat, "output", "o", "text", "output format: text or json")
 
 	root.AddCommand(
 		meCmd(),
@@ -46,11 +52,47 @@ func loadClient() (*jira.Client, *config.Config, error) {
 	return jira.NewClient(cfg), cfg, nil
 }
 
+func wantJSON() bool {
+	return strings.EqualFold(outputFormat, "json")
+}
+
 func emitJSON(v interface{}) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
 }
+
+func shortDate(raw string) string {
+	for _, layout := range []string{
+		"2006-01-02T15:04:05.000-0700",
+		"2006-01-02T15:04:05.000Z0700",
+		time.RFC3339,
+	} {
+		if t, err := time.Parse(layout, raw); err == nil {
+			return t.Format("2006-01-02 15:04")
+		}
+	}
+	if len(raw) >= 10 {
+		return raw[:10]
+	}
+	return raw
+}
+
+func displayName(u *jira.User) string {
+	if u == nil {
+		return "(unassigned)"
+	}
+	return u.DisplayName
+}
+
+func requestTypeName(crt *jira.CustomerRequestType) string {
+	if crt != nil && crt.RequestType != nil {
+		return crt.RequestType.Name
+	}
+	return ""
+}
+
+// --- commands ---
 
 func meCmd() *cobra.Command {
 	return &cobra.Command{
@@ -65,7 +107,11 @@ func meCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return emitJSON(user)
+			if wantJSON() {
+				return emitJSON(user)
+			}
+			fmt.Printf("%s <%s>\n", user.DisplayName, user.EmailAddress)
+			return nil
 		},
 	}
 }
@@ -83,7 +129,18 @@ func queuesCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return emitJSON(qs)
+			if wantJSON() {
+				return emitJSON(qs)
+			}
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+			for _, q := range qs {
+				fav := ""
+				if q.IsFavorite {
+					fav = "*"
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\n", q.ID, q.Name, fav)
+			}
+			return w.Flush()
 		},
 	}
 }
@@ -121,7 +178,19 @@ func queueCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return emitJSON(issues)
+			if wantJSON() {
+				return emitJSON(issues)
+			}
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+			for _, iss := range issues {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+					iss.Key,
+					iss.Fields.Status.Name,
+					displayName(iss.Fields.Assignee),
+					iss.Fields.Summary,
+				)
+			}
+			return w.Flush()
 		},
 	}
 	cmd.Flags().IntVar(&start, "start", 0, "pagination start offset")
@@ -132,19 +201,85 @@ func queueCmd() *cobra.Command {
 func issueCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "issue <KEY>",
-		Short: "Show full issue details (includes embedded comments)",
+		Short: "Show full issue details including proforma forms and attachments",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			c, _, err := loadClient()
 			if err != nil {
 				return err
 			}
-			issue, err := c.GetIssue(args[0])
+			detail, err := c.GetIssueDetail(args[0])
 			if err != nil {
 				return err
 			}
-			return emitJSON(issue)
+			if wantJSON() {
+				return emitJSON(detail)
+			}
+			printIssueText(detail)
+			return nil
 		},
+	}
+}
+
+func printIssueText(d *jira.IssueDetail) {
+	f := d.Fields
+	rt := requestTypeName(f.CustomerRequestType)
+
+	fmt.Printf("%s  %s\n", d.Key, f.Summary)
+	fmt.Printf("Status:    %s\n", f.Status.Name)
+	fmt.Printf("Priority:  %s\n", f.Priority.Name)
+	fmt.Printf("Assignee:  %s\n", displayName(f.Assignee))
+	fmt.Printf("Reporter:  %s\n", displayName(f.Reporter))
+	typeLine := f.IssueType.Name
+	if rt != "" {
+		typeLine += " (" + rt + ")"
+	}
+	fmt.Printf("Type:      %s\n", typeLine)
+	fmt.Printf("Created:   %s\n", shortDate(f.Created))
+	fmt.Printf("Updated:   %s\n", shortDate(f.Updated))
+
+	if f.Description != "" {
+		fmt.Printf("\n--- Description ---\n%s\n", f.Description)
+	}
+
+	for _, form := range d.ProformaForms {
+		fmt.Printf("\n--- Form: %s ---\n", form.Name)
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		for _, field := range form.Fields {
+			if field.Label == "" {
+				continue
+			}
+			fmt.Fprintf(w, "  %s:\t%s\n", field.Label, field.Answer)
+		}
+		w.Flush()
+	}
+
+	if len(f.Attachment) > 0 {
+		fmt.Printf("\n--- Attachments (%d) ---\n", len(f.Attachment))
+		for _, a := range f.Attachment {
+			fmt.Printf("  %s  (%s, %s)\n", a.Filename, humanSize(a.Size), a.MimeType)
+		}
+	}
+
+	if len(f.Comment.Comments) > 0 {
+		fmt.Printf("\n--- Comments (%d) ---\n", len(f.Comment.Comments))
+		for _, c := range f.Comment.Comments {
+			fmt.Printf("  %s  %s:\n", shortDate(c.GetCreated()), c.Author.DisplayName)
+			for _, line := range strings.Split(c.Body, "\n") {
+				fmt.Printf("    %s\n", line)
+			}
+		}
+	}
+}
+
+func humanSize(b int64) string {
+	switch {
+	case b >= 1<<20:
+		return fmt.Sprintf("%.1f MB", float64(b)/float64(1<<20))
+	case b >= 1<<10:
+		return fmt.Sprintf("%.1f KB", float64(b)/float64(1<<10))
+	default:
+		return fmt.Sprintf("%d B", b)
 	}
 }
 
@@ -162,7 +297,14 @@ func transitionsCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return emitJSON(ts)
+			if wantJSON() {
+				return emitJSON(ts)
+			}
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+			for _, t := range ts {
+				fmt.Fprintf(w, "%s\t→ %s\n", t.Name, t.To.Name)
+			}
+			return w.Flush()
 		},
 	}
 }

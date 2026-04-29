@@ -26,12 +26,14 @@ when_to_use: User talks about Jira tickets, queues, "my issues", "my queue", or 
 
 ## Tool
 
-`jsm-cli` — JSON-output CLI. Call via the bash tool.
+`jsm-cli` — CLI for JSM. Clean text output by default, full JSON with `-o json`. Call via the bash tool.
 
 ```bash
 jsm-cli --help               # all commands
 jsm-cli <command> --help     # flags + args for one command
 jsm-cli me                   # verify auth (run first each session)
+jsm-cli issue FKS-1234       # concise text summary
+jsm-cli issue FKS-1234 -o json  # full JSON with proforma + attachments
 ```
 
 If `jsm-cli me` errors:
@@ -46,7 +48,7 @@ If `jsm-cli me` errors:
 | `me` | ✓ | |
 | `queues` | ✓ | |
 | `queue <name>` | ✓ | |
-| `issue <KEY>` | ✓ | |
+| `issue <KEY>` | ✓ | | includes proforma forms + attachments |
 | `transitions <KEY>` | ✓ | |
 | `comment <KEY> <body> [--internal]` | | ✓ |
 | `transition <KEY> <status>` | | ✓ |
@@ -63,24 +65,40 @@ Run `jsm-cli <command> --help` for flags and args.
 5. **No bulk ops.** One issue per command. No loops without explicit instruction.
 6. **Write commands silent on success.** Empty stdout + zero exit = ok. Non-zero exit + stderr = failed.
 
+## Output format
+
+All read commands default to concise text. Add `-o json` for full JSON.
+
+- `jsm-cli issue X` → human-readable summary with proforma forms, attachments, comments
+- `jsm-cli issue X -o json` → full JSON including `proformaForms` array at top level
+- `jsm-cli queue "Main"` → tabular: KEY, STATUS, ASSIGNEE, SUMMARY
+- `jsm-cli queue "Main" -o json` → full issue JSON array
+- `jsm-cli transitions X` → tabular: TRANSITION → TARGET STATUS
+- Write commands (`comment`, `transition`, `assign`) are silent on success regardless of `-o`
+
 ## Patterns
 
-Issue summary:
+Issue summary (text mode — no jq needed):
 ```bash
-jsm-cli issue X | jq '{key, summary: .fields.summary, status: .fields.status.name, assignee: .fields.assignee.displayName}'
+jsm-cli issue X
+```
+
+Full JSON for scripting:
+```bash
+jsm-cli issue X -o json | jq '.proformaForms[0].Fields[] | select(.Label != "")'
 ```
 
 My queue (filter Main if no per-user queue exists):
 ```bash
-jsm-cli queue "Main" | jq '.[] | select(.fields.assignee.name == "__JIRA_USERNAME__")'
+jsm-cli queue "Main" -o json | jq '.[] | select(.fields.assignee.name == "__JIRA_USERNAME__")'
 ```
 
 Transition by target status:
 ```bash
-jsm-cli transitions X    # find target name in `.to.name`
+jsm-cli transitions X    # find target name in the → column
 jsm-cli transition X "In Progress"
 ```
 
 ## Limitations
 
-No bulk update, no JQL, no cross-project, no attachments, no proforma editing. Web UI at `__JIRA_URL__` for any of those.
+No bulk update, no JQL, no cross-project, no attachment download, no proforma editing. Web UI at `__JIRA_URL__` for any of those.
